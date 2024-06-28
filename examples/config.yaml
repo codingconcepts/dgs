@@ -1,0 +1,60 @@
+database: postgres://rob:3af4742da4c799ae54ad1a740bfe7ae2e872ad95@crdb-dgs-1969.j77.aws-eu-central-1.cockroachlabs.cloud:26257/defaultdb?sslmode=verify-full
+workers: 2
+batch: 10000
+
+tables:
+  - name: member
+    rows: 100000
+    columns:
+      - name: id
+        value: ${uuid}
+      - name: email
+        value: ${email}
+      - name: registered
+        range: timestamp
+        format: 2006-01-02T15:04:05Z
+        min: 2020-01-01T00:00:00Z
+        max: 2024-01-01T00:00:00Z
+
+  - name: product
+    rows: 1000
+    columns:
+      - name: id
+        value: ${uuid}
+      - name: name
+        value: ${noun} ${adjective} ${verb}
+      - name: price
+        range: float
+        min: 1
+        max: 100
+
+  - name: purchase
+    rows: 100000
+    columns:
+      - name: id
+        value: ${uuid}
+      - name: member_id
+        ref: member.id
+      - name: amount
+        range: float
+        min: 1
+        max: 100
+      - name: status
+        set: [pending, paid, dispatched]
+      - name: ts
+        range: timestamp
+        format: 2006-01-02T15:04:05Z
+        min: 2020-01-01T00:00:00Z
+        max: 2024-01-01T00:00:00Z
+  
+  - name: purchase_line
+    rows: 1000000
+    columns:
+      - name: purchase_id
+        ref: purchase.id
+      - name: product_id
+        ref: product.id
+      - name: quantity
+        range: int
+        min: 1
+        max: 5
