@@ -33,6 +33,7 @@ type Column struct {
 	Range  string   `yaml:"range"`
 	Min    string   `yaml:"min,omitempty"`
 	Max    string   `yaml:"max,omitempty"`
+	Length int      `yaml:"length"`
 	Format string   `yaml:"format"`
 	Ref    string   `yaml:"ref,omitempty"`
 	Set    []string `yaml:"set,omitempty"`

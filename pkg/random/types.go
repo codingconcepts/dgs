@@ -1,6 +1,7 @@
 package random
 
 import (
+	crand "crypto/rand"
 	"fmt"
 	"math/rand"
 	"strconv"
@@ -55,6 +56,22 @@ func Timestamp(min, max string) (time.Time, error) {
 	randUnix := minUnix + rand.Int63n(delta)
 	return time.Unix(randUnix, 0), nil
 
+}
+
+func Bytes(min, max string) ([]byte, error) {
+	n, err := Int(min, max)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]byte, n)
+
+	_, err = crand.Read(result)
+	if err != nil {
+		return nil, fmt.Errorf("creating random bytes: %w", err)
+	}
+
+	return result, nil
 }
 
 func UUID() string {

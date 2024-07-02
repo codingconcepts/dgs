@@ -108,5 +108,8 @@ TRUNCATE TABLE member CASCADE;
 
 ### Todo
 
+- [ ] [Bug] Add length field to range (to prevent Int63n from failing because of max - min = 0 error)
+
 - [ ] [Performance] Process ref dependency tables first and run them concurrently
 - [ ] [Performance] Run inserts in parallel
+- [ ] [Performance] Use ints for min and max ranges where possible

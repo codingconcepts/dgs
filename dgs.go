@@ -209,6 +209,9 @@ func generateRange(c model.Column) (any, error) {
 	case "float":
 		return random.Float(c.Min, c.Max)
 
+	case "bytes":
+		return random.Bytes(c.Min, c.Max)
+
 	case "timestamp":
 		v, err := random.Timestamp(c.Min, c.Max)
 		if err != nil {
