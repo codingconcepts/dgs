@@ -48,8 +48,10 @@ time go run dgs.go \
 --config "examples/config.yaml" \
 --url "postgres://root@localhost:26257?sslmode=disable"
 
-# 1 workers => 2.87s user 0.59s system 10% cpu 33.280 total
-# 2 workers => 2.80s user 0.57s system 11% cpu 29.607 total
+# 1 workers => 3.46s user 1.16s system 15% cpu 30.819 total
+# 2 workers => 2.57s user 0.49s system 15% cpu 19.312 total
+# 4 workers => 2.99s user 0.52s system 24% cpu 14.473 total (best)
+# 8 workers => 3.54s user 1.02s system 33% cpu 13.450 total (diminishing returns)
 ```
 
 ### Scratchpad

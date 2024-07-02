@@ -27,6 +27,8 @@ func main() {
 	url := flag.String("url", "", "database connection string")
 	config := flag.String("config", "", "absolute or relative path to the config file")
 	debug := flag.Bool("debug", false, "enable debug logging")
+	batch := flag.Int("batch", 10000, "query and insert batch size")
+	workers := flag.Int("workers", 4, "number of workers to run concurrently")
 	flag.Parse()
 
 	if *config == "" || *url == "" {
@@ -60,53 +62,90 @@ func main() {
 	defer db.Close()
 
 	logger.Debug().Msg("generating data")
-	if err = generate(db, c); err != nil {
+	if err = generate(db, c, *workers, *batch); err != nil {
 		logger.Fatal().Msgf("error generating data: %v", err)
 	}
 
 	logger.Info().Msg("done")
 }
 
-func generate(db *pgxpool.Pool, config model.Config) error {
+func generate(db *pgxpool.Pool, config model.Config, workers, batch int) error {
 	for _, table := range config.Tables {
 		logger.Info().Str("table", table.Name).Msg("generating table")
 
-		var rows [][]any
-
-		refs, err := populateRefs(db, config.Workers, table.Columns, config.Batch)
+		refs, err := populateRefs(db, workers, table.Columns, batch)
 		if err != nil {
 			return fmt.Errorf("populating refs: %w", err)
 		}
 
-		for i := 0; i < table.Rows; i++ {
-			row, err := generateRow(table.Columns, refs)
-			if err != nil {
-				return fmt.Errorf("generating row: %w", err)
-			}
+		var progressMu sync.Mutex
+		totalProcessed := 0
 
-			rows = append(rows, row)
+		eg := new(errgroup.Group)
+		rowGroups := splitRows(table.Rows, workers)
 
-			// Flush if batch size reached.
-			if len(rows) == config.Batch {
-				logger.Info().Msgf("writing rows %d/%d", i, table.Rows)
-				if err := writeRows(db, table, rows); err != nil {
-					return fmt.Errorf("writing rows: %w", err)
+		for _, rowsCount := range rowGroups {
+			rowsCount := rowsCount // capture range variable
+			eg.Go(func() error {
+				var rows [][]any
+				for i := 0; i < rowsCount; i++ {
+					row, err := generateRow(table.Columns, refs)
+					if err != nil {
+						return fmt.Errorf("generating row: %w", err)
+					}
+					rows = append(rows, row)
+
+					// Flush if batch size reached.
+					if len(rows) == batch {
+						progressMu.Lock()
+						totalProcessed += len(rows)
+						logger.Info().Msgf("writing rows %d/%d", totalProcessed, table.Rows)
+						progressMu.Unlock()
+
+						if err := writeRows(db, table, rows); err != nil {
+							return fmt.Errorf("writing rows: %w", err)
+						}
+						rows = nil
+					}
 				}
-				rows = nil
-			}
+
+				// Flush any stragglers.
+				if len(rows) > 0 {
+					progressMu.Lock()
+					totalProcessed += len(rows)
+					logger.Info().Msgf("writing rows %d/%d", totalProcessed, table.Rows)
+					progressMu.Unlock()
+
+					if err := writeRows(db, table, rows); err != nil {
+						return fmt.Errorf("writing rows: %w", err)
+					}
+				}
+				return nil
+			})
 		}
 
-		// Flush any stragglers.
-		if len(rows) > 0 {
-			logger.Info().Msg("writing remaining rows")
-			if err := writeRows(db, table, rows); err != nil {
-				return fmt.Errorf("writing rows: %w", err)
-			}
-			rows = nil
+		if err := eg.Wait(); err != nil {
+			return fmt.Errorf("error generating data: %w", err)
 		}
 	}
 
 	return nil
+}
+
+// splitRows distributes the total rows to generate for a table across the
+// workers participating in the load.
+func splitRows(totalRows, workerCount int) []int {
+	rowsPerWorker := totalRows / workerCount
+	rowGroups := make([]int, workerCount)
+	for i := 0; i < workerCount; i++ {
+		rowGroups[i] = rowsPerWorker
+	}
+
+	// Distribute the remainder.
+	for i := 0; i < totalRows%workerCount; i++ {
+		rowGroups[i]++
+	}
+	return rowGroups
 }
 
 func populateRefs(db *pgxpool.Pool, workers int, columns []model.Column, batch int) (map[string][]any, error) {
@@ -232,7 +271,7 @@ func generateValue(c model.Column) (any, error) {
 		return formatValue(c.Format, v()), nil
 	}
 
-	// Process multipe-replacements.
+	// Process multiple-replacements.
 	for k, v := range random.Replacements {
 		if strings.Contains(value, k) {
 			value = strings.ReplaceAll(value, k, formatValue(c.Format, v()))

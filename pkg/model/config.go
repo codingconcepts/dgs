@@ -15,9 +15,7 @@ const (
 )
 
 type Config struct {
-	Workers int     `yaml:"workers"`
-	Batch   int     `yaml:"batch"`
-	Tables  []Table `yaml:"tables"`
+	Tables []Table `yaml:"tables"`
 }
 
 type Table struct {
