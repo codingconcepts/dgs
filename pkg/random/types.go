@@ -21,6 +21,10 @@ func Int(min, max string) (int64, error) {
 		return 0, fmt.Errorf("parsing max: %w", err)
 	}
 
+	if parsedMin == parsedMax {
+		return parsedMin, nil
+	}
+
 	return rand.Int63n(parsedMax-parsedMin) + parsedMin, nil
 }
 
@@ -47,6 +51,10 @@ func Timestamp(min, max string) (time.Time, error) {
 	parsedMax, err := time.Parse(time.RFC3339, max)
 	if err != nil {
 		return time.Time{}, fmt.Errorf("parsing max: %w", err)
+	}
+
+	if parsedMin.Equal(parsedMax) {
+		return parsedMin, nil
 	}
 
 	minUnix := parsedMin.Unix()

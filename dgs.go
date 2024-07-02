@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/dustin/go-humanize"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
@@ -79,13 +80,13 @@ func generate(db *pgxpool.Pool, config model.Config, workers, batch int) error {
 		}
 
 		var progressMu sync.Mutex
-		totalProcessed := 0
+		var totalProcessed int
 
 		eg := new(errgroup.Group)
 		rowGroups := splitRows(table.Rows, workers)
 
 		for _, rowsCount := range rowGroups {
-			rowsCount := rowsCount // capture range variable
+			rowsCount := rowsCount
 			eg.Go(func() error {
 				var rows [][]any
 				for i := 0; i < rowsCount; i++ {
@@ -99,7 +100,7 @@ func generate(db *pgxpool.Pool, config model.Config, workers, batch int) error {
 					if len(rows) == batch {
 						progressMu.Lock()
 						totalProcessed += len(rows)
-						logger.Info().Msgf("writing rows %d/%d", totalProcessed, table.Rows)
+						logger.Info().Msgf("writing rows %s/%s", humanize.Comma(int64(totalProcessed)), humanize.Comma(int64(table.Rows)))
 						progressMu.Unlock()
 
 						if err := writeRows(db, table, rows); err != nil {
