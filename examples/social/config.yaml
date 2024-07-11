@@ -1,5 +1,5 @@
 tables:
-  - name: member
+  - name: users
     rows: 100000
     columns:
       - name: id
@@ -10,6 +10,7 @@ tables:
         value: ${name}
       - name: location
         range: point
-        lat: 51.04284752235447
-        lon: -0.8911379425829405
-        distance_km: 100
+        props:
+          lat: 51.04284752235447
+          lon: -0.8911379425829405
+          distance_km: 100

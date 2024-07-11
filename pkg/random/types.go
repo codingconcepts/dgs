@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
-	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -15,62 +14,48 @@ const (
 	earthRadiusMiles = 3958.8
 )
 
-func Int(min, max string) (int64, error) {
-	parsedMin, err := strconv.ParseInt(min, 10, 64)
-	if err != nil {
-		return 0, fmt.Errorf("parsing min: %w", err)
+func Int(min, max int64) int64 {
+	if min == max {
+		return min
 	}
 
-	parsedMax, err := strconv.ParseInt(max, 10, 64)
-	if err != nil {
-		return 0, fmt.Errorf("parsing max: %w", err)
+	if min > max {
+		min, max = max, min
 	}
 
-	if parsedMin == parsedMax {
-		return parsedMin, nil
-	}
-
-	return rand.Int63n(parsedMax-parsedMin) + parsedMin, nil
+	return rand.Int63n(max-min) + min
 }
 
-func Float(min, max string) (float64, error) {
-	parsedMin, err := strconv.ParseFloat(min, 64)
-	if err != nil {
-		return 0, fmt.Errorf("parsing min: %w", err)
+func Float(min, max float64) float64 {
+	if min == max {
+		return min
 	}
 
-	parsedMax, err := strconv.ParseFloat(max, 64)
-	if err != nil {
-		return 0, fmt.Errorf("parsing max: %w", err)
+	if min > max {
+		min, max = max, min
 	}
 
-	return parsedMin + rand.Float64()*(parsedMax-parsedMin), nil
+	return min + rand.Float64()*(max-min)
 }
 
-func Timestamp(min, max string) (time.Time, error) {
-	parsedMin, err := time.Parse(time.RFC3339, min)
-	if err != nil {
-		return time.Time{}, fmt.Errorf("parsing min: %w", err)
+func Timestamp(min, max time.Time) time.Time {
+	if min.Equal(max) {
+		return min
 	}
 
-	parsedMax, err := time.Parse(time.RFC3339, max)
-	if err != nil {
-		return time.Time{}, fmt.Errorf("parsing max: %w", err)
+	if min.After(max) {
+		min, max = max, min
 	}
 
-	if parsedMin.Equal(parsedMax) {
-		return parsedMin, nil
-	}
-
-	minUnix := parsedMin.Unix()
-	maxUnix := parsedMax.Unix()
+	minUnix := min.Unix()
+	maxUnix := max.Unix()
 	delta := maxUnix - minUnix
 
 	randUnix := minUnix + rand.Int63n(delta)
-	return time.Unix(randUnix, 0), nil
+	return time.Unix(randUnix, 0)
 }
 
-func Point(lat, lon, radiusMiles float64) (float64, float64, error) {
+func Point(lat, lon, radiusMiles float64) (float64, float64) {
 	randomDistance := (rand.Float64() * radiusMiles) / earthRadiusMiles
 	randomBearing := rand.Float64() * 2 * math.Pi
 
@@ -91,7 +76,7 @@ func Point(lat, lon, radiusMiles float64) (float64, float64, error) {
 		cosRandomDistance-sinLatRad*math.Sin(newLatRad),
 	)
 
-	return radiansToDegrees(newLatRad), radiansToDegrees(newLonRad), nil
+	return radiansToDegrees(newLatRad), radiansToDegrees(newLonRad)
 }
 
 func degreesToRadians(degrees float64) float64 {
@@ -102,15 +87,11 @@ func radiansToDegrees(radians float64) float64 {
 	return radians * 180 / math.Pi
 }
 
-func Bytes(min, max string) ([]byte, error) {
-	n, err := Int(min, max)
-	if err != nil {
-		return nil, err
-	}
-
+func Bytes(min, max int64) ([]byte, error) {
+	n := Int(min, max)
 	result := make([]byte, n)
 
-	_, err = crand.Read(result)
+	_, err := crand.Read(result)
 	if err != nil {
 		return nil, fmt.Errorf("creating random bytes: %w", err)
 	}

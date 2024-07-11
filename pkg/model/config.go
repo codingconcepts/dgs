@@ -2,9 +2,10 @@ package model
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/rs/zerolog"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 type ColumnType string
@@ -28,19 +29,40 @@ type Table struct {
 }
 
 type Column struct {
-	Name       string `yaml:"name"`
-	Mode       ColumnType
-	Value      string   `yaml:"value"`
-	Range      string   `yaml:"range"`
-	Min        string   `yaml:"min,omitempty"`
-	Max        string   `yaml:"max,omitempty"`
-	Lat        float64  `yaml:"lat"`
-	Lon        float64  `yaml:"lon"`
-	DistanceKM int      `yaml:"distance_km"`
-	Length     int      `yaml:"length"`
-	Format     string   `yaml:"format"`
-	Ref        string   `yaml:"ref,omitempty"`
-	Set        []string `yaml:"set,omitempty"`
+	Name  string `yaml:"name"`
+	Mode  ColumnType
+	Value string    `yaml:"value"`
+	Range string    `yaml:"range"`
+	Props yaml.Node `yaml:"props"`
+	Ref   string    `yaml:"ref,omitempty"`
+	Set   []string  `yaml:"set,omitempty"`
+}
+
+type IntRange struct {
+	Min int64 `yaml:"min"`
+	Max int64 `yaml:"max"`
+}
+
+type FloatRange struct {
+	Min float64 `yaml:"min"`
+	Max float64 `yaml:"max"`
+}
+
+type ByteRange struct {
+	Min int64 `yaml:"min"`
+	Max int64 `yaml:"max"`
+}
+
+type TimestampRange struct {
+	Min    time.Time `yaml:"min"`
+	Max    time.Time `yaml:"max"`
+	Format string    `yaml:"format"`
+}
+
+type PointRange struct {
+	Lat        float64 `yaml:"lat"`
+	Lon        float64 `yaml:"lon"`
+	DistanceKM float64 `yaml:"distance_km"`
 }
 
 func ParseConfig(yamlData string, logger zerolog.Logger) (Config, error) {

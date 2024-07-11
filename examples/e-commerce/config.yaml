@@ -8,9 +8,10 @@ tables:
         value: ${email}
       - name: registered
         range: timestamp
-        format: 2006-01-02T15:04:05Z
-        min: 2020-01-01T00:00:00Z
-        max: 2024-01-01T00:00:00Z
+        props:
+          format: 2006-01-02T15:04:05Z
+          min: 2020-01-01T00:00:00Z
+          max: 2024-01-01T00:00:00Z
 
   - name: product
     rows: 1000
@@ -21,8 +22,9 @@ tables:
         value: ${noun} ${adjective} ${verb}
       - name: price
         range: float
-        min: 1
-        max: 100
+        props:
+          min: 1
+          max: 100
 
   - name: purchase
     rows: 10000
@@ -33,15 +35,17 @@ tables:
         ref: member.id
       - name: amount
         range: float
-        min: 1
-        max: 100
+        props:
+          min: 1
+          max: 100
       - name: status
         set: [pending, paid, dispatched]
       - name: ts
         range: timestamp
-        format: 2006-01-02T15:04:05Z
-        min: 2020-01-01T00:00:00Z
-        max: 2024-01-01T00:00:00Z
+        props:
+          format: 2006-01-02T15:04:05Z
+          min: 2020-01-01T00:00:00Z
+          max: 2024-01-01T00:00:00Z
   
   - name: purchase_line
     rows: 100000
@@ -54,5 +58,6 @@ tables:
         ref: product.id
       - name: quantity
         range: int
-        min: 1
-        max: 5
+        props:
+          min: 1
+          max: 5

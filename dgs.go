@@ -254,26 +254,42 @@ func generateRow(columns []model.Column, refs map[string][]any) ([]any, error) {
 func generateRange(c model.Column) (any, error) {
 	switch x := strings.ToLower(c.Range); x {
 	case "int":
-		return random.Int(c.Min, c.Max)
+		var x model.IntRange
+		if err := c.Props.Decode(&x); err != nil {
+			return nil, fmt.Errorf("decoding int range props: %w", err)
+		}
+		return random.Int(x.Min, x.Max), nil
 
 	case "float":
-		return random.Float(c.Min, c.Max)
+		var x model.FloatRange
+		if err := c.Props.Decode(&x); err != nil {
+			return nil, fmt.Errorf("decoding float range props: %w", err)
+		}
+		return random.Float(x.Min, x.Max), nil
 
 	case "bytes":
-		return random.Bytes(c.Min, c.Max)
+		var x model.ByteRange
+		if err := c.Props.Decode(&x); err != nil {
+			return nil, fmt.Errorf("decoding bytes range props: %w", err)
+		}
+		return random.Bytes(x.Min, x.Max)
 
 	case "timestamp":
-		v, err := random.Timestamp(c.Min, c.Max)
-		if err != nil {
-			return nil, fmt.Errorf("generating timestamp: %w", err)
+		var x model.TimestampRange
+		if err := c.Props.Decode(&x); err != nil {
+			return nil, fmt.Errorf("decoding timestamp range props: %w", err)
 		}
-		return formatValue(c.Format, v), nil
+
+		v := random.Timestamp(x.Min, x.Max)
+		return v.Format(x.Format), nil
 
 	case "point":
-		lon, lat, err := random.Point(c.Lat, c.Lon, float64(c.DistanceKM))
-		if err != nil {
-			return nil, fmt.Errorf("generating point: %w", err)
+		var x model.PointRange
+		if err := c.Props.Decode(&x); err != nil {
+			return nil, fmt.Errorf("decoding point range props: %w", err)
 		}
+
+		lon, lat := random.Point(x.Lat, x.Lon, float64(x.DistanceKM))
 		return model.Point{Lat: lat, Lon: lon}, nil
 
 	default:
@@ -286,31 +302,17 @@ func generateValue(c model.Column) (any, error) {
 
 	// Look for quick single-replacements.
 	if v, ok := random.Replacements[value]; ok {
-		return formatValue(c.Format, v()), nil
+		return v(), nil
 	}
 
 	// Process multiple-replacements.
 	for k, v := range random.Replacements {
 		if strings.Contains(value, k) {
-			value = strings.ReplaceAll(value, k, formatValue(c.Format, v()))
+			value = strings.ReplaceAll(value, k, fmt.Sprintf("%v", v()))
 		}
 	}
 
 	return value, nil
-}
-
-func formatValue(format string, value any) string {
-	// Check if the value implements the formatter interface and use that first,
-	// otherwise, just perform a simple string format.
-	if format != "" {
-		if f, ok := value.(model.Formatter); ok {
-			return f.Format(format)
-		}
-
-		return fmt.Sprintf(format, value)
-	}
-
-	return fmt.Sprintf("%v", value)
 }
 
 func writeRows(db *pgxpool.Pool, table model.Table, rows [][]any) error {

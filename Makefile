@@ -1,3 +1,30 @@
+validate_version:
+ifndef VERSION
+	$(error VERSION is undefined)
+endif
+
+release: validate_version
+	- mkdir releases
+
+	# linux
+	GOOS=linux go build -ldflags "-X main.version=${VERSION}" -o dgs ;\
+	tar -zcvf ./releases/dgs_${VERSION}_linux.tar.gz ./dgs ;\
+
+	# macos (arm)
+	GOOS=darwin GOARCH=arm64 go build -ldflags "-X main.version=${VERSION}" -o dgs ;\
+	tar -zcvf ./releases/dgs_${VERSION}_macos_arm64.tar.gz ./dgs ;\
+
+	# macos (amd)
+	GOOS=darwin GOARCH=amd64 go build -ldflags "-X main.version=${VERSION}" -o dgs ;\
+	tar -zcvf ./releases/dgs_${VERSION}_macos_amd64.tar.gz ./dgs ;\
+
+	# windows
+	GOOS=windows go build -ldflags "-X main.version=${VERSION}" -o dgs ;\
+	tar -zcvf ./releases/dgs_${VERSION}_windows.tar.gz ./dgs ;\
+
+	rm ./dgs
+
+
 build:
 	go build dgs.go
 

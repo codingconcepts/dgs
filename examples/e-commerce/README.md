@@ -45,3 +45,20 @@ go run dgs.go \
 --workers 4 \
 --batch 10000
 ```
+
+Query
+
+```sql
+SELECT
+  m.email,
+  p.amount,
+  p.status,
+  pr.name,
+  pl.quantity,
+  p.ts
+FROM purchase_line pl
+JOIN purchase p ON pl.purchase_id = p.id
+JOIN product pr ON pl.product_id = pr.id
+JOIN member m ON p.member_id = m.id
+LIMIT 10;
+```
