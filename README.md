@@ -39,19 +39,41 @@ CREATE TABLE purchase_line (
   product_id UUID NOT NULL REFERENCES product(id),
   quantity INT NOT NULL DEFAULT 1
 );
+
+CREATE TABLE person (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email STRING NOT NULL,
+  full_name STRING NOT NULL,
+  registered TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE pet (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  person_id UUID NOT NULL REFERENCES person(id),
+  name STRING NOT NULL,
+  registered TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE person SPLIT AT
+  SELECT rpad(to_hex(prefix::INT), 32, '0')::UUID AS split_at
+  FROM generate_series(0, 16) AS prefix;
+
+ALTER TABLE pet SPLIT AT
+  SELECT rpad(to_hex(prefix::INT), 32, '0')::UUID AS split_at
+  FROM generate_series(0, 16) AS prefix;
 ```
 
 ### Generate data
 
 ```sh
 time go run dgs.go \
---config "examples/config.yaml" \
---url "postgres://root@localhost:26257?sslmode=disable"
+--config "examples/stress.yaml" \
+--url "postgres://root@localhost:26257?sslmode=disable" \
+--workers 4 \
+--batch 10000
+# 11.747s
 
-# 1 workers => 3.46s user 1.16s system 15% cpu 30.819 total
-# 2 workers => 2.57s user 0.49s system 15% cpu 19.312 total
-# 4 workers => 2.99s user 0.52s system 24% cpu 14.473 total (best)
-# 8 workers => 3.54s user 1.02s system 33% cpu 13.450 total (diminishing returns)
+
 ```
 
 ### Scratchpad
@@ -102,10 +124,7 @@ FROM [SHOW RANGES FROM TABLE purchase_line with INDEXES, KEYS, DETAILS];
 Truncate tables
 
 ```sql
-TRUNCATE TABLE purchase_line;
-TRUNCATE TABLE purchase CASCADE;
-TRUNCATE TABLE product CASCADE;
-TRUNCATE TABLE member CASCADE;
+TRUNCATE TABLE purchase_line; TRUNCATE TABLE purchase CASCADE; TRUNCATE TABLE product CASCADE; TRUNCATE TABLE member CASCADE;
 ```
 
 ### Todo
@@ -115,3 +134,4 @@ TRUNCATE TABLE member CASCADE;
 - [ ] [Performance] Process ref dependency tables first and run them concurrently
 - [ ] [Performance] Run inserts in parallel
 - [ ] [Performance] Use ints for min and max ranges where possible
+- [ ] [Performance] Consider sorting data by primary key column(s) before inserting

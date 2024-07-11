@@ -1,6 +1,6 @@
 tables:
   - name: member
-    rows: 100000
+    rows: 10000
     columns:
       - name: id
         value: ${uuid}
@@ -25,7 +25,7 @@ tables:
         max: 100
 
   - name: purchase
-    rows: 100000
+    rows: 10000
     columns:
       - name: id
         value: ${uuid}
@@ -44,8 +44,10 @@ tables:
         max: 2024-01-01T00:00:00Z
   
   - name: purchase_line
-    rows: 1000000
+    rows: 100000
     columns:
+      - name: id
+        value: ${uuid}
       - name: purchase_id
         ref: purchase.id
       - name: product_id

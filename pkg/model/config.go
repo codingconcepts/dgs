@@ -21,22 +21,26 @@ type Config struct {
 }
 
 type Table struct {
-	Name    string   `yaml:"name"`
-	Rows    int      `yaml:"rows"`
-	Columns []Column `yaml:"columns"`
+	Name        string   `yaml:"name"`
+	Rows        int      `yaml:"rows"`
+	Columns     []Column `yaml:"columns"`
+	Identifiers []string `yaml:"identifiers"`
 }
 
 type Column struct {
-	Name   string `yaml:"name"`
-	Mode   ColumnType
-	Value  string   `yaml:"value"`
-	Range  string   `yaml:"range"`
-	Min    string   `yaml:"min,omitempty"`
-	Max    string   `yaml:"max,omitempty"`
-	Length int      `yaml:"length"`
-	Format string   `yaml:"format"`
-	Ref    string   `yaml:"ref,omitempty"`
-	Set    []string `yaml:"set,omitempty"`
+	Name       string `yaml:"name"`
+	Mode       ColumnType
+	Value      string   `yaml:"value"`
+	Range      string   `yaml:"range"`
+	Min        string   `yaml:"min,omitempty"`
+	Max        string   `yaml:"max,omitempty"`
+	Lat        float64  `yaml:"lat"`
+	Lon        float64  `yaml:"lon"`
+	DistanceKM int      `yaml:"distance_km"`
+	Length     int      `yaml:"length"`
+	Format     string   `yaml:"format"`
+	Ref        string   `yaml:"ref,omitempty"`
+	Set        []string `yaml:"set,omitempty"`
 }
 
 func ParseConfig(yamlData string, logger zerolog.Logger) (Config, error) {

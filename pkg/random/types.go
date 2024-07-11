@@ -3,11 +3,16 @@ package random
 import (
 	crand "crypto/rand"
 	"fmt"
+	"math"
 	"math/rand"
 	"strconv"
 	"time"
 
 	"github.com/google/uuid"
+)
+
+const (
+	earthRadiusMiles = 3958.8
 )
 
 func Int(min, max string) (int64, error) {
@@ -63,7 +68,38 @@ func Timestamp(min, max string) (time.Time, error) {
 
 	randUnix := minUnix + rand.Int63n(delta)
 	return time.Unix(randUnix, 0), nil
+}
 
+func Point(lat, lon, radiusMiles float64) (float64, float64, error) {
+	randomDistance := (rand.Float64() * radiusMiles) / earthRadiusMiles
+	randomBearing := rand.Float64() * 2 * math.Pi
+
+	latRad := degreesToRadians(lat)
+	lonRad := degreesToRadians(lon)
+
+	sinLatRad := math.Sin(latRad)
+	cosLatRad := math.Cos(latRad)
+	sinRandomDistance := math.Sin(randomDistance)
+	cosRandomDistance := math.Cos(randomDistance)
+	cosRandomBearing := math.Cos(randomBearing)
+	sinRandomBearing := math.Sin(randomBearing)
+
+	newLatRad := math.Asin(sinLatRad*cosRandomDistance + cosLatRad*sinRandomDistance*cosRandomBearing)
+
+	newLonRad := lonRad + math.Atan2(
+		sinRandomBearing*sinRandomDistance*cosLatRad,
+		cosRandomDistance-sinLatRad*math.Sin(newLatRad),
+	)
+
+	return radiansToDegrees(newLatRad), radiansToDegrees(newLonRad), nil
+}
+
+func degreesToRadians(degrees float64) float64 {
+	return degrees * math.Pi / 180
+}
+
+func radiansToDegrees(radians float64) float64 {
+	return radians * 180 / math.Pi
 }
 
 func Bytes(min, max string) ([]byte, error) {

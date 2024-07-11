@@ -18,6 +18,7 @@ import (
 	"github.com/codingconcepts/dgs/pkg/model"
 	"github.com/codingconcepts/dgs/pkg/query"
 	"github.com/codingconcepts/dgs/pkg/random"
+	"github.com/codingconcepts/dgs/pkg/ui"
 )
 
 var (
@@ -107,6 +108,12 @@ func generate(db *pgxpool.Pool, config model.Config, workers, batch int) error {
 							return fmt.Errorf("writing rows: %w", err)
 						}
 						rows = nil
+
+						// Renew refs.
+						refs, err = populateRefs(db, workers, table.Columns, batch)
+						if err != nil {
+							return fmt.Errorf("populating refs: %w", err)
+						}
 					}
 				}
 
@@ -150,6 +157,9 @@ func splitRows(totalRows, workerCount int) []int {
 }
 
 func populateRefs(db *pgxpool.Pool, workers int, columns []model.Column, batch int) (map[string][]any, error) {
+	timer := ui.NewTimer("populateRefs", logger)
+	defer timer.Log()
+
 	var resultsMu sync.Mutex
 	results := map[string][]any{}
 
@@ -258,6 +268,13 @@ func generateRange(c model.Column) (any, error) {
 			return nil, fmt.Errorf("generating timestamp: %w", err)
 		}
 		return formatValue(c.Format, v), nil
+
+	case "point":
+		lon, lat, err := random.Point(c.Lat, c.Lon, float64(c.DistanceKM))
+		if err != nil {
+			return nil, fmt.Errorf("generating point: %w", err)
+		}
+		return model.Point{Lat: lat, Lon: lon}, nil
 
 	default:
 		return nil, fmt.Errorf("invalid type for range: %q", x)
