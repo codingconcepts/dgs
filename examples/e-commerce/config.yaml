@@ -1,63 +1,63 @@
 tables:
-  - name: member
-    rows: 10000
-    columns:
-      - name: id
-        value: ${uuid}
-      - name: email
-        value: ${email}
-      - name: registered
-        range: timestamp
-        props:
-          format: 2006-01-02T15:04:05Z
-          min: 2020-01-01T00:00:00Z
-          max: 2024-01-01T00:00:00Z
-
-  - name: product
-    rows: 1000
-    columns:
-      - name: id
-        value: ${uuid}
-      - name: name
-        value: ${noun} ${adjective} ${verb}
-      - name: price
-        range: float
-        props:
-          min: 1
-          max: 100
-
-  - name: purchase
-    rows: 10000
-    columns:
-      - name: id
-        value: ${uuid}
-      - name: member_id
-        ref: member.id
-      - name: amount
-        range: float
-        props:
-          min: 1
-          max: 100
-      - name: status
-        set: [pending, paid, dispatched]
-      - name: ts
-        range: timestamp
-        props:
-          format: 2006-01-02T15:04:05Z
-          min: 2020-01-01T00:00:00Z
-          max: 2024-01-01T00:00:00Z
-  
-  - name: purchase_line
-    rows: 100000
-    columns:
-      - name: id
-        value: ${uuid}
-      - name: purchase_id
-        ref: purchase.id
-      - name: product_id
-        ref: product.id
-      - name: quantity
-        range: int
-        props:
-          min: 1
-          max: 5
+    - name: product
+      rows: 1000
+      columns:
+        - name: id
+          value: ${uuid}
+        - name: name
+          value: ${name}
+        - name: price
+          range: float
+          props:
+            min: 1
+            max: 1000
+    - name: member
+      rows: 10000
+      columns:
+        - name: id
+          value: ${uuid}
+        - name: email
+          value: ${email}
+        - name: registered
+          range: timestamp
+          props:
+            min: 2014-07-15T01:00:00+01:00
+            max: 2024-07-12T01:00:00+01:00
+            format: "2006-01-02T15:04:05Z"
+    - name: purchase
+      rows: 500000
+      columns:
+        - name: id
+          value: ${uuid}
+        - name: member_id
+          ref: member.id
+        - name: amount
+          range: float
+          props:
+            min: 1
+            max: 1000
+        - name: status
+          set:
+            - pending
+            - paid
+            - dispatched
+        - name: ts
+          range: timestamp
+          props:
+            min: 2014-07-15T01:00:00+01:00
+            max: 2024-07-12T01:00:00+01:00
+            format: "2006-01-02T15:04:05Z"
+    - name: purchase_line
+      rows: 1000000
+      columns:
+        - name: id
+          value: ${uuid}
+        - name: purchase_id
+          ref: purchase.id
+        - name: product_id
+          ref: product.id
+        - name: quantity
+          range: int
+          props:
+            min: 1
+            max: 1000000

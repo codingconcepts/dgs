@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -16,13 +17,18 @@ import (
 var columnDefinitionsStmt string
 
 // GenerateConfig creates a config object
-func GenerateConfig(db *pgxpool.Pool, schema string) (model.Config, error) {
+func GenerateConfig(db *pgxpool.Pool, schema string, rowCounts []string) (model.Config, error) {
+	rowCountMap, err := parseRowCounts(rowCounts)
+	if err != nil {
+		return model.Config{}, fmt.Errorf("parsing row count: %w", err)
+	}
+
 	columns, err := fetchColumnDefinitions(db, schema)
 	if err != nil {
 		return model.Config{}, fmt.Errorf("fetching column definitions: %w", err)
 	}
 
-	tables, err := toConfigs(columns)
+	tables, err := toConfigs(columns, rowCountMap)
 	if err != nil {
 		return model.Config{}, fmt.Errorf("converting column defintions to config: %w", err)
 	}
@@ -30,6 +36,27 @@ func GenerateConfig(db *pgxpool.Pool, schema string) (model.Config, error) {
 	return model.Config{
 		Tables: tables,
 	}, nil
+}
+
+func parseRowCounts(rowCounts []string) (map[string]int, error) {
+	m := map[string]int{}
+	for _, rc := range rowCounts {
+		parts := strings.Split(rc, ":")
+		if len(parts) != 2 {
+			continue
+		}
+
+		tableName := parts[0]
+
+		rowCount, err := strconv.Atoi(parts[1])
+		if err != nil {
+			return nil, fmt.Errorf("parsing count %q: %w", rc, err)
+		}
+
+		m[tableName] = rowCount
+	}
+
+	return m, nil
 }
 
 type columnDefinition struct {
@@ -61,7 +88,7 @@ func fetchColumnDefinitions(db *pgxpool.Pool, schema string) ([]columnDefinition
 	return definitions, nil
 }
 
-func toConfigs(definitions []columnDefinition) ([]model.Table, error) {
+func toConfigs(definitions []columnDefinition, rowCountMap map[string]int) ([]model.Table, error) {
 	groups := lo.GroupBy(definitions, func(d columnDefinition) string {
 		return d.TableName
 	})
@@ -71,6 +98,11 @@ func toConfigs(definitions []columnDefinition) ([]model.Table, error) {
 		table := model.Table{
 			Name: t[0].TableName,
 			Rows: 100000,
+		}
+
+		// Apply row count if provided.
+		if rowCount, ok := rowCountMap[table.Name]; ok {
+			table.Rows = rowCount
 		}
 
 		for _, c := range t {

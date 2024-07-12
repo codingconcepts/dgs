@@ -30,10 +30,24 @@ If familiar with dgs configuration, you may prefer to hand-roll your dgs configs
 
 Note that this tool will sort the tables in the config file in dependency order using Kahn's algorithm to determin topological order (guaranteeing that tables with a reference to another table will be generated after the table they depend reference).
 
+Generate config file with default row counts
+
 ```sh
 dgs gen config \
 --url "postgres://root@localhost:26257?sslmode=disable" \
 --schema public > examples/e-commerce/config.yaml
+```
+
+Generate config file with custom row counts (tables without a row-count will receive the default row count)
+
+```sh
+dgs gen config \
+--url "postgres://root@localhost:26257?sslmode=disable" \
+--schema public \
+--row-count member:10000 \
+--row-count product:1000 \
+--row-count purchase:500000 \
+--row-count purchase_line:1000000 > examples/e-commerce/config.yaml
 ```
 
 ### Generate data
@@ -50,4 +64,5 @@ dgs gen data \
 
 ### Todo
 
+- [ ] [Performance] Process all tables in batches (rather than one at a time), preventing the need for fetches
 - [ ] [Performance] Consider sorting data by primary key column(s) before inserting

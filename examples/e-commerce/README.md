@@ -36,10 +36,30 @@ CREATE TABLE purchase_line (
 );
 ```
 
+Config (with default row counts)
+
+```sh
+dgs gen config \
+--url "postgres://root@localhost:26257?sslmode=disable" \
+--schema public > examples/e-commerce/config.yaml
+```
+
+Config (with custom row counts)
+
+```sh
+dgs gen config \
+--url "postgres://root@localhost:26257?sslmode=disable" \
+--schema public \
+--row-count member:10000 \
+--row-count product:1000 \
+--row-count purchase:500000 \
+--row-count purchase_line:1000000 > examples/e-commerce/config.yaml
+```
+
 Data
 
 ```sh
-go run dgs.go gen data \
+dgs gen data \
 --config "examples/e-commerce/config.yaml" \
 --url "postgres://root@localhost:26257?sslmode=disable" \
 --workers 4 \
@@ -67,12 +87,4 @@ Cleanup
 
 ```sql
 TRUNCATE purchase_line; TRUNCATE purchase CASCADE; TRUNCATE product CASCADE; TRUNCATE member CASCADE;
-```
-
-Config
-
-```sh
-go run dgs.go gen config \
---url "postgres://root@localhost:26257?sslmode=disable" \
---schema public
 ```

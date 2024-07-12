@@ -32,7 +32,8 @@ var (
 	workers int
 
 	// Gen config flags.
-	schema string
+	schema    string
+	rowCounts []string
 )
 
 func main() {
@@ -69,6 +70,7 @@ func main() {
 	}
 
 	genConfigCmd.Flags().StringVar(&schema, "schema", "public", "name of the schema to create a config for")
+	genConfigCmd.Flags().StringSliceVar(&rowCounts, "row-count", nil, "row count per table as TABLE_NAME:ROW_COUNT (otherwise 100,000)")
 	genConfigCmd.MarkFlagRequired("schema")
 
 	genCmd.AddCommand(genDataCmd, genConfigCmd)
@@ -131,7 +133,7 @@ func genConfig(cmd *cobra.Command, args []string) {
 	}
 	defer db.Close()
 
-	config, err := commands.GenerateConfig(db, schema)
+	config, err := commands.GenerateConfig(db, schema, rowCounts)
 	if err != nil {
 		logger.Fatal().Msgf("error generating config: %v", err)
 	}
