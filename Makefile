@@ -6,9 +6,13 @@ endif
 release: validate_version
 	- mkdir releases
 
-	# linux
+	# linux (arm)
 	GOOS=linux go build -ldflags "-X main.version=${VERSION}" -o dgs ;\
-	tar -zcvf ./releases/dgs_${VERSION}_linux.tar.gz ./dgs ;\
+	tar -zcvf ./releases/dgs_${VERSION}_linux_arm.tar.gz ./dgs ;\
+
+	# linux (amd)
+	GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=${VERSION}" -o dgs ;\
+	tar -zcvf ./releases/dgs_${VERSION}_linux_amd.tar.gz ./dgs ;\
 
 	# macos (arm)
 	GOOS=darwin GOARCH=arm64 go build -ldflags "-X main.version=${VERSION}" -o dgs ;\

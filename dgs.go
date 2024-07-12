@@ -2,332 +2,130 @@ package main
 
 import (
 	"context"
-	"flag"
-	"fmt"
+	"log"
 	"os"
-	"strings"
-	"sync"
-	"time"
 
-	"github.com/dustin/go-humanize"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
-	"golang.org/x/sync/errgroup"
+	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
 
+	"github.com/codingconcepts/dgs/pkg/commands"
 	"github.com/codingconcepts/dgs/pkg/model"
-	"github.com/codingconcepts/dgs/pkg/query"
-	"github.com/codingconcepts/dgs/pkg/random"
-	"github.com/codingconcepts/dgs/pkg/ui"
 )
 
 var (
 	logger zerolog.Logger
+
+	// Shared flags.
+	url   string
+	debug bool
+
+	// Gen data flags.
+	config  string
+	batch   int
+	workers int
+
+	// Gen config flags.
+	schema string
 )
 
 func main() {
-	url := flag.String("url", "", "database connection string")
-	config := flag.String("config", "", "absolute or relative path to the config file")
-	debug := flag.Bool("debug", false, "enable debug logging")
-	batch := flag.Int("batch", 10000, "query and insert batch size")
-	workers := flag.Int("workers", 4, "number of workers to run concurrently")
-	flag.Parse()
-
-	if *config == "" || *url == "" {
-		flag.Usage()
-		os.Exit(2)
+	rootCmd := &cobra.Command{
+		Use:              "dgs",
+		Short:            "dgs is a streaming data generator",
+		PersistentPreRun: initialize,
 	}
 
+	genCmd := &cobra.Command{
+		Use:   "gen",
+		Short: "Generate things using dgs",
+	}
+
+	genCmd.PersistentFlags().StringVar(&url, "url", "", "connection string")
+	genCmd.PersistentFlags().BoolVar(&debug, "debug", false, "enhable debug logging")
+	genCmd.MarkPersistentFlagRequired("url")
+
+	genDataCmd := &cobra.Command{
+		Use:   "data",
+		Short: "Generate relational data",
+		Run:   genData,
+	}
+
+	genDataCmd.Flags().StringVar(&config, "config", "", "absolute or relative path to the config file")
+	genDataCmd.Flags().IntVar(&batch, "batch", 10000, "query and insert batch size")
+	genDataCmd.Flags().IntVar(&workers, "workers", 4, "number of workers to run concurrently")
+	genDataCmd.MarkFlagRequired("config")
+
+	genConfigCmd := &cobra.Command{
+		Use:   "config",
+		Short: "Generate the config file for a given database schema",
+		Run:   genConfig,
+	}
+
+	genConfigCmd.Flags().StringVar(&schema, "schema", "public", "name of the schema to create a config for")
+	genConfigCmd.MarkFlagRequired("schema")
+
+	genCmd.AddCommand(genDataCmd, genConfigCmd)
+	rootCmd.AddCommand(genCmd)
+
+	if err := rootCmd.Execute(); err != nil {
+		log.Fatalf("error running dgs: %v", err)
+	}
+}
+
+func initialize(cmd *cobra.Command, args []string) {
 	logger = zerolog.New(zerolog.ConsoleWriter{
 		Out: os.Stderr,
 		PartsExclude: []string{
 			zerolog.TimestampFieldName,
 		},
-	}).Level(lo.Ternary(*debug, zerolog.DebugLevel, zerolog.InfoLevel))
+	}).Level(lo.Ternary(debug, zerolog.DebugLevel, zerolog.InfoLevel))
+}
 
-	logger.Debug().Msgf("reading file: %s", *config)
-	file, err := os.ReadFile(*config)
+func genData(cmd *cobra.Command, args []string) {
+	logger.Debug().Msgf("reading file: %s", config)
+	file, err := os.ReadFile(config)
 	if err != nil {
 		logger.Fatal().Msgf("error reading config file: %v", err)
 	}
 
-	logger.Debug().Msgf("parsing file: %s", *config)
+	logger.Debug().Msgf("parsing file: %s", config)
 	c, err := model.ParseConfig(string(file), logger)
 	if err != nil {
 		logger.Fatal().Msgf("error parsing config file: %v", err)
 	}
 
-	db, err := pgxpool.New(context.Background(), *url)
+	db, err := pgxpool.New(context.Background(), url)
 	if err != nil {
 		logger.Fatal().Msgf("error connecting to database: %v", err)
 	}
 	defer db.Close()
 
+	g := commands.NewDataGenerator(db, logger, c, workers, batch)
+
 	logger.Debug().Msg("generating data")
-	if err = generate(db, c, *workers, *batch); err != nil {
+	if err = g.Generate(); err != nil {
 		logger.Fatal().Msgf("error generating data: %v", err)
 	}
 
 	logger.Info().Msg("done")
 }
 
-func generate(db *pgxpool.Pool, config model.Config, workers, batch int) error {
-	for _, table := range config.Tables {
-		logger.Info().Str("table", table.Name).Msg("generating table")
-
-		refs, err := populateRefs(db, workers, table.Columns, batch)
-		if err != nil {
-			return fmt.Errorf("populating refs: %w", err)
-		}
-
-		var progressMu sync.Mutex
-		var totalProcessed int
-
-		eg := new(errgroup.Group)
-		rowGroups := splitRows(table.Rows, workers)
-
-		for _, rowsCount := range rowGroups {
-			rowsCount := rowsCount
-			eg.Go(func() error {
-				var rows [][]any
-				for i := 0; i < rowsCount; i++ {
-					row, err := generateRow(table.Columns, refs)
-					if err != nil {
-						return fmt.Errorf("generating row: %w", err)
-					}
-					rows = append(rows, row)
-
-					// Flush if batch size reached.
-					if len(rows) == batch {
-						progressMu.Lock()
-						totalProcessed += len(rows)
-						logger.Info().Msgf("writing rows %s/%s", humanize.Comma(int64(totalProcessed)), humanize.Comma(int64(table.Rows)))
-						progressMu.Unlock()
-
-						if err := writeRows(db, table, rows); err != nil {
-							return fmt.Errorf("writing rows: %w", err)
-						}
-						rows = nil
-
-						// Renew refs.
-						refs, err = populateRefs(db, workers, table.Columns, batch)
-						if err != nil {
-							return fmt.Errorf("populating refs: %w", err)
-						}
-					}
-				}
-
-				// Flush any stragglers.
-				if len(rows) > 0 {
-					progressMu.Lock()
-					totalProcessed += len(rows)
-					logger.Info().Msgf("writing rows %d/%d", totalProcessed, table.Rows)
-					progressMu.Unlock()
-
-					if err := writeRows(db, table, rows); err != nil {
-						return fmt.Errorf("writing rows: %w", err)
-					}
-				}
-				return nil
-			})
-		}
-
-		if err := eg.Wait(); err != nil {
-			return fmt.Errorf("error generating data: %w", err)
-		}
-	}
-
-	return nil
-}
-
-// splitRows distributes the total rows to generate for a table across the
-// workers participating in the load.
-func splitRows(totalRows, workerCount int) []int {
-	rowsPerWorker := totalRows / workerCount
-	rowGroups := make([]int, workerCount)
-	for i := 0; i < workerCount; i++ {
-		rowGroups[i] = rowsPerWorker
-	}
-
-	// Distribute the remainder.
-	for i := 0; i < totalRows%workerCount; i++ {
-		rowGroups[i]++
-	}
-	return rowGroups
-}
-
-func populateRefs(db *pgxpool.Pool, workers int, columns []model.Column, batch int) (map[string][]any, error) {
-	timer := ui.NewTimer("populateRefs", logger)
-	defer timer.Log()
-
-	var resultsMu sync.Mutex
-	results := map[string][]any{}
-
-	eg := errgroup.Group{}
-	eg.SetLimit(workers)
-
-	for _, c := range columns {
-		if c.Ref == "" {
-			continue
-		}
-
-		c := c
-		eg.Go(func() error {
-			logger.Debug().Str("column", c.Name).Msg("populating ref")
-			values, err := populateRef(db, c, batch)
-			if err != nil {
-				return fmt.Errorf("populating ref for column %q", c.Name)
-			}
-
-			resultsMu.Lock()
-			results[c.Name] = values
-			resultsMu.Unlock()
-
-			return nil
-		})
-	}
-
-	return results, eg.Wait()
-}
-
-func populateRef(db *pgxpool.Pool, column model.Column, batch int) ([]any, error) {
-	const stmtFmt = `SELECT %s
-									 FROM %s
-									 ORDER BY RANDOM()
-									 LIMIT $1`
-
-	parts := strings.Split(column.Ref, ".")
-	stmt := fmt.Sprintf(stmtFmt, parts[1], parts[0])
-
-	rows, err := db.Query(context.Background(), stmt, batch)
+func genConfig(cmd *cobra.Command, args []string) {
+	db, err := pgxpool.New(context.Background(), url)
 	if err != nil {
-		return nil, fmt.Errorf("querying ref table: %w", err)
+		logger.Fatal().Msgf("error connecting to database: %v", err)
 	}
+	defer db.Close()
 
-	var results []any
-	var r any
-
-	for rows.Next() {
-		if err = rows.Scan(&r); err != nil {
-			return nil, fmt.Errorf("scanning ref row: %w", err)
-		}
-		results = append(results, r)
-	}
-
-	return results, nil
-}
-
-func generateRow(columns []model.Column, refs map[string][]any) ([]any, error) {
-	row := []any{}
-
-	for _, c := range columns {
-		switch c.Mode {
-		case model.ColumnTypeValue:
-			val, err := generateValue(c)
-			if err != nil {
-				return nil, fmt.Errorf("generating value: %w", err)
-			}
-			row = append(row, val)
-
-		case model.ColumnTypeRange:
-			val, err := generateRange(c)
-			if err != nil {
-				return nil, fmt.Errorf("generating range: %w", err)
-			}
-			row = append(row, val)
-
-		case model.ColumnTypeSet:
-			row = append(row, lo.Sample(c.Set))
-
-		case model.ColumnTypeRef:
-			row = append(row, lo.Sample(refs[c.Name]))
-
-		default:
-			return nil, fmt.Errorf("invalid column mode: %q", c.Mode)
-		}
-	}
-
-	logger.Debug().Msgf("row: %+v", row)
-	return row, nil
-}
-
-func generateRange(c model.Column) (any, error) {
-	switch x := strings.ToLower(c.Range); x {
-	case "int":
-		var x model.IntRange
-		if err := c.Props.Decode(&x); err != nil {
-			return nil, fmt.Errorf("decoding int range props: %w", err)
-		}
-		return random.Int(x.Min, x.Max), nil
-
-	case "float":
-		var x model.FloatRange
-		if err := c.Props.Decode(&x); err != nil {
-			return nil, fmt.Errorf("decoding float range props: %w", err)
-		}
-		return random.Float(x.Min, x.Max), nil
-
-	case "bytes":
-		var x model.ByteRange
-		if err := c.Props.Decode(&x); err != nil {
-			return nil, fmt.Errorf("decoding bytes range props: %w", err)
-		}
-		return random.Bytes(x.Min, x.Max)
-
-	case "timestamp":
-		var x model.TimestampRange
-		if err := c.Props.Decode(&x); err != nil {
-			return nil, fmt.Errorf("decoding timestamp range props: %w", err)
-		}
-
-		v := random.Timestamp(x.Min, x.Max)
-		return v.Format(x.Format), nil
-
-	case "point":
-		var x model.PointRange
-		if err := c.Props.Decode(&x); err != nil {
-			return nil, fmt.Errorf("decoding point range props: %w", err)
-		}
-
-		lon, lat := random.Point(x.Lat, x.Lon, float64(x.DistanceKM))
-		return model.Point{Lat: lat, Lon: lon}, nil
-
-	default:
-		return nil, fmt.Errorf("invalid type for range: %q", x)
-	}
-}
-
-func generateValue(c model.Column) (any, error) {
-	value := c.Value
-
-	// Look for quick single-replacements.
-	if v, ok := random.Replacements[value]; ok {
-		return v(), nil
-	}
-
-	// Process multiple-replacements.
-	for k, v := range random.Replacements {
-		if strings.Contains(value, k) {
-			value = strings.ReplaceAll(value, k, fmt.Sprintf("%v", v()))
-		}
-	}
-
-	return value, nil
-}
-
-func writeRows(db *pgxpool.Pool, table model.Table, rows [][]any) error {
-	stmt, err := query.BuildInsert(table, rows)
+	config, err := commands.GenerateConfig(db, schema)
 	if err != nil {
-		return fmt.Errorf("building insert: %w", err)
-	}
-	logger.Debug().Str("stmt", stmt).Msg("running insert")
-
-	timeout, cancel := context.WithTimeout(context.Background(), time.Second*10)
-	defer cancel()
-
-	if _, err := db.Exec(timeout, stmt, lo.Flatten(rows)...); err != nil {
-		return fmt.Errorf("executing query: %w", err)
+		logger.Fatal().Msgf("error generating config: %v", err)
 	}
 
-	return nil
+	if err = yaml.NewEncoder(os.Stdout).Encode(config); err != nil {
+		logger.Fatal().Msgf("error printing config: %v", err)
+	}
 }

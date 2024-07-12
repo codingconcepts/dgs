@@ -39,7 +39,7 @@ CREATE TABLE purchase_line (
 Data
 
 ```sh
-go run dgs.go \
+go run dgs.go gen data \
 --config "examples/e-commerce/config.yaml" \
 --url "postgres://root@localhost:26257?sslmode=disable" \
 --workers 4 \
@@ -61,4 +61,18 @@ JOIN purchase p ON pl.purchase_id = p.id
 JOIN product pr ON pl.product_id = pr.id
 JOIN member m ON p.member_id = m.id
 LIMIT 10;
+```
+
+Cleanup
+
+```sql
+TRUNCATE purchase_line; TRUNCATE purchase CASCADE; TRUNCATE product CASCADE; TRUNCATE member CASCADE;
+```
+
+Config
+
+```sh
+go run dgs.go gen config \
+--url "postgres://root@localhost:26257?sslmode=disable" \
+--schema public
 ```

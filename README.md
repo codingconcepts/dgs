@@ -13,26 +13,41 @@ tar -xvf dgs_0.0.1_macos_amd64.tar.gz
 
 ### Usage
 
+dgs uses cobra for managing commands, of which there are currently 2:
+
+```
+Usage:
+  dgs gen [command]
+
+Available Commands:
+  config      Generate the config file for a given database schema
+  data        Generate relational data
+```
+
+### Generate config
+
+If familiar with dgs configuration, you may prefer to hand-roll your dgs configs. However, if you'd prefer to use dgs itself to generate the configuration for you, you can use `dgs gen config` to generate a configuration file for you.
+
+Note that this tool will sort the tables in the config file in dependency order using Kahn's algorithm to determin topological order (guaranteeing that tables with a reference to another table will be generated after the table they depend reference).
+
 ```sh
-dgs --help
-Usage dgs:
-  -batch int
-        query and insert batch size (default 10000)
-  -config string
-        absolute or relative path to the config file
-  -debug
-        enable debug logging
-  -url string
-        database connection string
-  -workers int
-        number of workers to run concurrently (default 4)
+dgs gen config \
+--url "postgres://root@localhost:26257?sslmode=disable" \
+--schema public > examples/e-commerce/config.yaml
+```
+
+### Generate data
+
+Once you have a dgs config file, you can generate data
+
+```sh
+dgs gen data \
+--config examples/e-commerce/config.yaml \
+--url "postgres://root@localhost:26257?sslmode=disable" \
+--workers 4 \
+--batch 10000
 ```
 
 ### Todo
 
-- [ ] [Bug] Add length field to range (to prevent Int63n from failing because of max - min = 0 error)
-
-- [ ] [Performance] Process ref dependency tables first and run them concurrently
-- [ ] [Performance] Run inserts in parallel
-- [ ] [Performance] Use ints for min and max ranges where possible
 - [ ] [Performance] Consider sorting data by primary key column(s) before inserting
