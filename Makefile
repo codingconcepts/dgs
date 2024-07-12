@@ -28,7 +28,6 @@ release: validate_version
 
 	rm ./dgs
 
-
 build:
 	go build dgs.go
 

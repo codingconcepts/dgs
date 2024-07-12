@@ -26,9 +26,9 @@ Available Commands:
 
 ### Generate config
 
-If familiar with dgs configuration, you may prefer to hand-roll your dgs configs. However, if you'd prefer to use dgs itself to generate the configuration for you, you can use `dgs gen config` to generate a configuration file for you.
+If familiar with dgs configuration, you may prefer to hand-roll your dgs configs. However, if you'd prefer to use dgs itself to generate the configuration for you, you can use `dgs gen config` to generate a configuration file.
 
-Note that this tool will sort the tables in the config file in dependency order using Kahn's algorithm to determin topological order (guaranteeing that tables with a reference to another table will be generated after the table they depend reference).
+Note that this tool will sort the tables in the config file in topological order (guaranteeing that tables with a reference to another table will be generated after the table they depend reference).
 
 Generate config file with default row counts
 
