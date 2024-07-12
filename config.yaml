@@ -1,0 +1,16 @@
+tables:
+    - name: users
+      rows: 100000
+      columns:
+        - name: id
+          value: ${uuid}
+        - name: email
+          value: ${email}
+        - name: full_name
+          value: ${name}
+        - name: location
+          range: point
+          props:
+            lat: 51.542235
+            lon: -0.147515
+            distance_km: 100

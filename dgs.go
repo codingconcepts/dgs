@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 
@@ -17,6 +18,9 @@ import (
 
 var (
 	logger zerolog.Logger
+
+	// Application version (populated via ldflags).
+	version string
 
 	// Shared flags.
 	url   string
@@ -68,7 +72,14 @@ func main() {
 	genConfigCmd.MarkFlagRequired("schema")
 
 	genCmd.AddCommand(genDataCmd, genConfigCmd)
-	rootCmd.AddCommand(genCmd)
+
+	versionCmd := &cobra.Command{
+		Use:   "version",
+		Short: "Show application version",
+		Run:   showVersion,
+	}
+
+	rootCmd.AddCommand(genCmd, versionCmd)
 
 	if err := rootCmd.Execute(); err != nil {
 		log.Fatalf("error running dgs: %v", err)
@@ -128,4 +139,8 @@ func genConfig(cmd *cobra.Command, args []string) {
 	if err = yaml.NewEncoder(os.Stdout).Encode(config); err != nil {
 		logger.Fatal().Msgf("error printing config: %v", err)
 	}
+}
+
+func showVersion(cmd *cobra.Command, args []string) {
+	fmt.Println(version)
 }

@@ -23,18 +23,17 @@ type Config struct {
 }
 
 type Table struct {
-	Name        string   `yaml:"name"`
-	Rows        int      `yaml:"rows"`
-	Columns     []Column `yaml:"columns"`
-	Identifiers []string `yaml:"identifiers"`
+	Name    string   `yaml:"name"`
+	Rows    int      `yaml:"rows"`
+	Columns []Column `yaml:"columns"`
 }
 
 type Column struct {
-	Name  string `yaml:"name"`
-	Mode  ColumnType
-	Value string      `yaml:"value"`
-	Range string      `yaml:"range"`
-	Props *RawMessage `yaml:"props"`
+	Name  string      `yaml:"name"`
+	Mode  ColumnType  `yaml:"-"`
+	Value string      `yaml:"value,omitempty"`
+	Range string      `yaml:"range,omitempty"`
+	Props *RawMessage `yaml:"props,omitempty"`
 	Ref   string      `yaml:"ref,omitempty"`
 	Set   []string    `yaml:"set,omitempty"`
 }

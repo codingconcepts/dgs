@@ -2,13 +2,18 @@ package commands
 
 import (
 	"context"
+	_ "embed"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/codingconcepts/dgs/pkg/model"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/samber/lo"
 )
+
+//go:embed column_definitions.sql
+var columnDefinitionsStmt string
 
 // GenerateConfig creates a config object
 func GenerateConfig(db *pgxpool.Pool, schema string) (model.Config, error) {
@@ -38,66 +43,7 @@ type columnDefinition struct {
 }
 
 func fetchColumnDefinitions(db *pgxpool.Pool, schema string) ([]columnDefinition, error) {
-	const stmt = `WITH
-									columns_info AS (
-										SELECT 
-											table_name,
-											column_name,
-											ordinal_position,
-											column_default,
-											is_nullable,
-											udt_name AS data_type
-										FROM information_schema.columns
-										WHERE table_schema = $1
-									),
-									foreign_keys_info AS (
-										SELECT
-											tc.constraint_name,
-											tc.table_name AS fk_table,
-											kcu.column_name AS fk_column,
-											ccu.table_name AS pk_table,
-											ccu.column_name AS pk_column
-										FROM information_schema.table_constraints AS tc
-										JOIN information_schema.key_column_usage AS kcu ON tc.constraint_name = kcu.constraint_name
-										JOIN information_schema.constraint_column_usage AS ccu ON ccu.constraint_name = tc.constraint_name
-										WHERE tc.constraint_type = 'FOREIGN KEY'
-										AND tc.table_schema = $1
-									),
-									user_defined_types AS (
-										SELECT 
-											t.typname AS type_name,
-											t.typtype AS type_type,
-											array_agg(e.enumlabel ORDER BY e.enumsortorder) AS enum_labels
-										FROM  pg_type t
-										JOIN pg_namespace n ON t.typnamespace = n.oid
-										LEFT JOIN pg_enum e ON t.oid = e.enumtypid
-										WHERE n.nspname = $1
-										GROUP BY t.typname, t.typtype
-									)
-								SELECT 
-									c.table_name,
-									c.column_name,
-									c.column_default,
-									c.is_nullable,
-									CASE
-										WHEN udt.type_type = 'e' THEN 'enum'
-										ELSE c.data_type
-									END AS "data_type",
-									CASE 
-										WHEN udt.type_type = 'e' THEN udt.enum_labels
-										ELSE NULL
-									END AS user_defined_type,
-									CASE
-										WHEN fk.pk_table IS NOT NULL THEN fk.pk_table || '.' || fk.pk_column
-									END AS "fk"
-								FROM columns_info AS c
-								LEFT JOIN foreign_keys_info AS fk
-								ON c.table_name = fk.fk_table AND c.column_name = fk.fk_column
-								LEFT JOIN user_defined_types AS udt
-								ON c.data_type = udt.type_name
-								ORDER BY c.table_name, c.ordinal_position`
-
-	rows, err := db.Query(context.Background(), stmt, schema)
+	rows, err := db.Query(context.Background(), columnDefinitionsStmt, schema)
 	if err != nil {
 		return nil, fmt.Errorf("querying column definitions: %w", err)
 	}
@@ -128,14 +74,8 @@ func toConfigs(definitions []columnDefinition) ([]model.Table, error) {
 		}
 
 		for _, c := range t {
-			column := model.Column{
-				Name: c.ColumnName,
-			}
-
 			if c.ForeignKey != nil {
-				column.Mode = model.ColumnTypeRef
-				column.Ref = *c.ForeignKey
-				table.Columns = append(table.Columns, column)
+				table.Columns = append(table.Columns, createRefColumn(c))
 				continue
 			}
 
@@ -143,45 +83,13 @@ func toConfigs(definitions []columnDefinition) ([]model.Table, error) {
 				if c.UserDefintedType == nil {
 					return nil, fmt.Errorf("missing values for enum column %q", c.ColumnName)
 				}
-
-				column.Mode = model.ColumnTypeSet
-				column.Set = *c.UserDefintedType
-				table.Columns = append(table.Columns, column)
+				table.Columns = append(table.Columns, createEnumColumn(c))
 				continue
 			}
 
-			var err error
-			switch c.DataType {
-			case "uuid":
-				column.Mode = model.ColumnTypeValue
-				column.Value = "${uuid}"
-			case "text":
-				column.Mode = model.ColumnTypeValue
-				column.Value = "${COMPLETE}"
-			case "int8":
-				column.Mode = model.ColumnTypeRange
-				column.Range = "int"
-				if column.Props, err = model.NewRawMessage(model.IntRange{Min: 1, Max: 1000000}); err != nil {
-					return nil, fmt.Errorf("creating props for int range: %w", err)
-				}
-			case "numeric":
-				column.Mode = model.ColumnTypeRange
-				column.Range = "float"
-				if column.Props, err = model.NewRawMessage(model.FloatRange{Min: 1, Max: 1000}); err != nil {
-					return nil, fmt.Errorf("creating props for float range: %w", err)
-				}
-			case "timestamp", "timestamptz":
-				column.Mode = model.ColumnTypeRange
-				column.Range = "timestamp"
-				if column.Props, err = model.NewRawMessage(model.TimestampRange{
-					Min:    time.Now().Add(-time.Hour * 87600).Truncate(time.Hour * 24), // 10 yeras
-					Max:    time.Now().Truncate(time.Hour * 24),
-					Format: "2006-01-02T15:04:05Z",
-				}); err != nil {
-					return nil, fmt.Errorf("creating props for timestamp range: %w", err)
-				}
-			default:
-				return nil, fmt.Errorf("invalid type %q", c.DataType)
+			column, err := createRegularColumn(c)
+			if err != nil {
+				return nil, fmt.Errorf("creating column: %w", err)
 			}
 			table.Columns = append(table.Columns, column)
 		}
@@ -195,4 +103,86 @@ func toConfigs(definitions []columnDefinition) ([]model.Table, error) {
 	}
 
 	return tables, nil
+}
+
+func createRefColumn(c columnDefinition) model.Column {
+	return model.Column{
+		Name: c.ColumnName,
+		Mode: model.ColumnTypeRef,
+		Ref:  *c.ForeignKey,
+	}
+}
+
+func createEnumColumn(c columnDefinition) model.Column {
+	return model.Column{
+		Name: c.ColumnName,
+		Mode: model.ColumnTypeSet,
+		Set:  *c.UserDefintedType,
+	}
+}
+
+func createRegularColumn(c columnDefinition) (model.Column, error) {
+	var err error
+
+	column := model.Column{
+		Name: c.ColumnName,
+	}
+
+	switch c.DataType {
+	case "uuid":
+		column.Value = "${uuid}"
+
+	case "text":
+		column.Value = valueForTextColumn(c)
+
+	case "int8":
+		column.Range = "int"
+		if column.Props, err = model.NewRawMessage(model.IntRange{Min: 1, Max: 1000000}); err != nil {
+			return model.Column{}, fmt.Errorf("creating props for int range: %w", err)
+		}
+
+	case "numeric":
+		column.Range = "float"
+		if column.Props, err = model.NewRawMessage(model.FloatRange{Min: 1, Max: 1000}); err != nil {
+			return model.Column{}, fmt.Errorf("creating props for float range: %w", err)
+		}
+
+	case "timestamp", "timestamptz":
+		column.Range = "timestamp"
+		if column.Props, err = model.NewRawMessage(model.TimestampRange{
+			Min:    time.Now().Add(-time.Hour * 87600).Truncate(time.Hour * 24), // 10 yeras
+			Max:    time.Now().Truncate(time.Hour * 24),
+			Format: "2006-01-02T15:04:05Z",
+		}); err != nil {
+			return model.Column{}, fmt.Errorf("creating props for timestamp range: %w", err)
+		}
+
+	case "geometry":
+		column.Range = "point"
+		if column.Props, err = model.NewRawMessage(model.PointRange{
+			Lat:        51.542235,
+			Lon:        -0.147515,
+			DistanceKM: 20,
+		}); err != nil {
+			return model.Column{}, fmt.Errorf("creating props for point range: %w", err)
+		}
+
+	default:
+		return model.Column{}, fmt.Errorf("invalid type %q", c.DataType)
+	}
+
+	return column, nil
+}
+
+func valueForTextColumn(c columnDefinition) string {
+	name := strings.ToLower(c.ColumnName)
+
+	switch {
+	case strings.Contains(name, "email"):
+		return "${email}"
+	case strings.Contains(name, "name"):
+		return "${name}"
+	default:
+		return "${COMPLETE}"
+	}
 }

@@ -8,5 +8,5 @@ type Point struct {
 }
 
 func (p Point) String() string {
-	return fmt.Sprintf("Point(%f %f)", p.Lat, p.Lon)
+	return fmt.Sprintf("Point(%f %f)", p.Lon, p.Lat)
 }
