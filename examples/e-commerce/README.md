@@ -50,10 +50,10 @@ Config (with custom row counts)
 dgs gen config \
 --url "postgres://root@localhost:26257?sslmode=disable" \
 --schema public \
---row-count member:10000 \
---row-count product:1000 \
---row-count purchase:500000 \
---row-count purchase_line:1000000 > examples/e-commerce/config.yaml
+--row-count member:100 \
+--row-count product:100 \
+--row-count purchase:1000 \
+--row-count purchase_line:5000 > examples/e-commerce/config.yaml
 ```
 
 Data

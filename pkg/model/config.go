@@ -26,6 +26,8 @@ type Table struct {
 	Name    string   `yaml:"name"`
 	Rows    int      `yaml:"rows"`
 	Columns []Column `yaml:"columns"`
+
+	RefColumns []string `yaml:"-"`
 }
 
 type Column struct {
@@ -84,7 +86,34 @@ func ParseConfig(yamlData string, logger zerolog.Logger) (Config, error) {
 		}
 	}
 
+	// Mark tables that are dependencies on others.
+	markDependencies(&config)
+
 	return config, nil
+}
+
+func markDependencies(c *Config) {
+	tableMap := make(map[string]*Table)
+	for i := range c.Tables {
+		tableMap[c.Tables[i].Name] = &c.Tables[i]
+	}
+
+	for i := range c.Tables {
+		for _, column := range c.Tables[i].Columns {
+			if column.Ref == "" {
+				continue
+			}
+
+			refParts := strings.Split(column.Ref, ".")
+			if len(refParts) != 2 {
+				continue
+			}
+
+			if table, exists := tableMap[refParts[0]]; exists {
+				table.RefColumns = append(table.RefColumns, refParts[1])
+			}
+		}
+	}
 }
 
 func parseColumn(table *Table, i int) error {

@@ -1,4 +1,17 @@
 tables:
+    - name: member
+      rows: 1000
+      columns:
+        - name: id
+          value: ${uuid}
+        - name: email
+          value: ${email}
+        - name: registered
+          range: timestamp
+          props:
+            min: 2014-07-15T01:00:00+01:00
+            max: 2024-07-12T01:00:00+01:00
+            format: "2006-01-02T15:04:05Z"
     - name: product
       rows: 1000
       columns:
@@ -11,21 +24,8 @@ tables:
           props:
             min: 1
             max: 1000
-    - name: member
-      rows: 10000
-      columns:
-        - name: id
-          value: ${uuid}
-        - name: email
-          value: ${email}
-        - name: registered
-          range: timestamp
-          props:
-            min: 2014-07-15T01:00:00+01:00
-            max: 2024-07-12T01:00:00+01:00
-            format: "2006-01-02T15:04:05Z"
     - name: purchase
-      rows: 500000
+      rows: 10000
       columns:
         - name: id
           value: ${uuid}
@@ -48,7 +48,7 @@ tables:
             max: 2024-07-12T01:00:00+01:00
             format: "2006-01-02T15:04:05Z"
     - name: purchase_line
-      rows: 1000000
+      rows: 100000
       columns:
         - name: id
           value: ${uuid}

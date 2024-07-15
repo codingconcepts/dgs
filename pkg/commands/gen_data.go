@@ -4,18 +4,14 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/codingconcepts/dgs/pkg/model"
 	"github.com/codingconcepts/dgs/pkg/query"
 	"github.com/codingconcepts/dgs/pkg/random"
-	"github.com/codingconcepts/dgs/pkg/ui"
-	"github.com/dustin/go-humanize"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
-	"golang.org/x/sync/errgroup"
 )
 
 // DataGenerator holds the runtime dependencies of gen data.
@@ -25,87 +21,85 @@ type DataGenerator struct {
 	config  model.Config
 	workers int
 	batch   int
+
+	iterationData *model.IterationData
 }
 
 // NewDataGenerator returns a pointer to a new instance of DataGenerator.
 func NewDataGenerator(db *pgxpool.Pool, logger zerolog.Logger, config model.Config, workers, batch int) *DataGenerator {
 	return &DataGenerator{
-		db:      db,
-		logger:  logger,
-		config:  config,
-		workers: workers,
-		batch:   batch,
+		db:            db,
+		logger:        logger,
+		config:        config,
+		workers:       workers,
+		batch:         batch,
+		iterationData: model.NewIterationData(),
 	}
 }
 
-// Generate data.
+func calculateIterations(tables []model.Table, batchSize int) (map[string]int, error) {
+	minRows := lo.MinBy(tables, func(a, b model.Table) bool {
+		return a.Rows < b.Rows
+	})
+
+	if minRows.Rows < batchSize {
+		return nil, fmt.Errorf("smallest table must have at least %d rows", batchSize)
+	}
+
+	return lo.SliceToMap(tables, func(t model.Table) (string, int) {
+		return t.Name, t.Rows / batchSize / (minRows.Rows / batchSize)
+	}), nil
+}
+
 func (g *DataGenerator) Generate() error {
-	for _, table := range g.config.Tables {
-		g.logger.Info().Str("table", table.Name).Msg("generating table")
+	iterations, err := calculateIterations(g.config.Tables, g.batch)
+	if err != nil {
+		return fmt.Errorf("calculating iteration counts: %w", err)
+	}
 
-		refs, err := g.populateRefs(table.Columns)
-		if err != nil {
-			return fmt.Errorf("populating refs: %w", err)
-		}
+	generated := map[string]int{}
 
-		var progressMu sync.Mutex
-		var totalProcessed int
+	for {
+		for _, t := range g.config.Tables {
+			g.logger.Info().Str("table", t.Name).Msg("generating table")
 
-		eg := new(errgroup.Group)
-		rowGroups := g.splitRows(table.Rows)
-
-		for _, rowsCount := range rowGroups {
-			rowsCount := rowsCount
-			eg.Go(func() error {
-				var rows [][]any
-				for i := 0; i < rowsCount; i++ {
-					row, err := g.generateRow(table.Columns, refs)
-					if err != nil {
-						return fmt.Errorf("generating row: %w", err)
-					}
-					rows = append(rows, row)
-
-					// Flush if batch size reached.
-					if len(rows) == g.batch {
-						progressMu.Lock()
-						totalProcessed += len(rows)
-						g.logger.Info().Msgf("writing rows %s/%s", humanize.Comma(int64(totalProcessed)), humanize.Comma(int64(table.Rows)))
-						progressMu.Unlock()
-
-						if err := g.writeRows(table, rows); err != nil {
-							return fmt.Errorf("writing rows: %w", err)
-						}
-						rows = nil
-
-						// Renew refs.
-						refs, err = g.populateRefs(table.Columns)
-						if err != nil {
-							return fmt.Errorf("populating refs: %w", err)
-						}
-					}
+			for i := 0; i < iterations[t.Name]; i++ {
+				// Generate rows.
+				rows, err := g.generateRows(t)
+				if err != nil {
+					return fmt.Errorf("generating rows: %w", err)
 				}
 
-				// Flush any stragglers.
-				if len(rows) > 0 {
-					progressMu.Lock()
-					totalProcessed += len(rows)
-					g.logger.Info().Msgf("writing rows %d/%d", totalProcessed, table.Rows)
-					progressMu.Unlock()
-
-					if err := g.writeRows(table, rows); err != nil {
-						return fmt.Errorf("writing rows: %w", err)
-					}
+				// Write rows.
+				if err = g.writeRows(t, rows); err != nil {
+					return fmt.Errorf("writing rows: %w", err)
 				}
-				return nil
-			})
+
+				generated[t.Name] += g.batch
+			}
 		}
 
-		if err := eg.Wait(); err != nil {
-			return fmt.Errorf("error generating data: %w", err)
+		if finished(g.config.Tables, generated) {
+			break
 		}
 	}
 
 	return nil
+}
+
+func finished(tables []model.Table, generated map[string]int) bool {
+	for _, t := range tables {
+		g, ok := generated[t.Name]
+		if !ok {
+			return false
+		}
+
+		if g < t.Rows {
+			return false
+		}
+	}
+
+	return true
 }
 
 // splitRows distributes the total rows to generate for a table across the
@@ -124,68 +118,21 @@ func (g *DataGenerator) splitRows(totalRows int) []int {
 	return rowGroups
 }
 
-func (g *DataGenerator) populateRefs(columns []model.Column) (map[string][]any, error) {
-	timer := ui.NewTimer("populateRefs", g.logger)
-	defer timer.Log()
+func (g *DataGenerator) generateRows(table model.Table) ([][]any, error) {
+	rows := [][]any{}
 
-	var resultsMu sync.Mutex
-	results := map[string][]any{}
-
-	eg := errgroup.Group{}
-	eg.SetLimit(g.workers)
-
-	for _, c := range columns {
-		if c.Ref == "" {
-			continue
+	for i := 0; i < g.batch; i++ {
+		row, err := g.generateRow(table.Columns)
+		if err != nil {
+			return nil, fmt.Errorf("generating row: %w", err)
 		}
-
-		c := c
-		eg.Go(func() error {
-			g.logger.Debug().Str("column", c.Name).Msg("populating ref")
-			values, err := g.populateRef(c)
-			if err != nil {
-				return fmt.Errorf("populating ref for column %q", c.Name)
-			}
-
-			resultsMu.Lock()
-			results[c.Name] = values
-			resultsMu.Unlock()
-
-			return nil
-		})
+		rows = append(rows, row)
 	}
 
-	return results, eg.Wait()
+	return rows, nil
 }
 
-func (g *DataGenerator) populateRef(column model.Column) ([]any, error) {
-	const stmtFmt = `SELECT %s
-									 FROM %s
-									 ORDER BY RANDOM()
-									 LIMIT $1`
-
-	parts := strings.Split(column.Ref, ".")
-	stmt := fmt.Sprintf(stmtFmt, parts[1], parts[0])
-
-	rows, err := g.db.Query(context.Background(), stmt, g.batch)
-	if err != nil {
-		return nil, fmt.Errorf("querying ref table: %w", err)
-	}
-
-	var results []any
-	var r any
-
-	for rows.Next() {
-		if err = rows.Scan(&r); err != nil {
-			return nil, fmt.Errorf("scanning ref row: %w", err)
-		}
-		results = append(results, r)
-	}
-
-	return results, nil
-}
-
-func (g *DataGenerator) generateRow(columns []model.Column, refs map[string][]any) ([]any, error) {
+func (g *DataGenerator) generateRow(columns []model.Column) ([]any, error) {
 	row := []any{}
 
 	for _, c := range columns {
@@ -208,7 +155,7 @@ func (g *DataGenerator) generateRow(columns []model.Column, refs map[string][]an
 			row = append(row, lo.Sample(c.Set))
 
 		case model.ColumnTypeRef:
-			row = append(row, lo.Sample(refs[c.Name]))
+			row = append(row, g.iterationData.GetValue(c.Ref))
 
 		default:
 			return nil, fmt.Errorf("invalid column mode: %q", c.Mode)
@@ -295,6 +242,23 @@ func (g *DataGenerator) writeRows(table model.Table, rows [][]any) error {
 
 	if _, err := g.db.Exec(timeout, stmt, lo.Flatten(rows)...); err != nil {
 		return fmt.Errorf("executing query: %w", err)
+	}
+
+	// Return the generated rows that match the columns that other tables reference.
+	for _, column := range table.RefColumns {
+		_, index, ok := lo.FindIndexOf(table.Columns, func(c model.Column) bool {
+			return c.Name == column
+		})
+
+		if !ok {
+			continue
+		}
+
+		g.iterationData.AddData(rows, table.Name, column, index)
+		g.logger.Debug().
+			Str("column", column).
+			Any("values", g.iterationData.GetValues(fmt.Sprintf("%s.%s", table.Name, column))).
+			Msg("persisting ref column")
 	}
 
 	return nil
