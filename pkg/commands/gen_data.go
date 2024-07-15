@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/codingconcepts/dgs/pkg/model"
@@ -22,6 +23,8 @@ type DataGenerator struct {
 	workers int
 	batch   int
 
+	generatedMu   sync.RWMutex
+	generated     map[string]int
 	iterationData *model.IterationData
 }
 
@@ -34,6 +37,7 @@ func NewDataGenerator(db *pgxpool.Pool, logger zerolog.Logger, config model.Conf
 		workers:       workers,
 		batch:         batch,
 		iterationData: model.NewIterationData(),
+		generated:     map[string]int{},
 	}
 }
 
@@ -57,8 +61,6 @@ func (g *DataGenerator) Generate() error {
 		return fmt.Errorf("calculating iteration counts: %w", err)
 	}
 
-	generated := map[string]int{}
-
 	for {
 		for _, t := range g.config.Tables {
 			g.logger.Info().Str("table", t.Name).Msg("generating table")
@@ -75,11 +77,13 @@ func (g *DataGenerator) Generate() error {
 					return fmt.Errorf("writing rows: %w", err)
 				}
 
-				generated[t.Name] += g.batch
+				g.generatedMu.Lock()
+				g.generated[t.Name] += g.batch
+				g.generatedMu.Unlock()
 			}
 		}
 
-		if finished(g.config.Tables, generated) {
+		if g.finished() {
 			break
 		}
 	}
@@ -87,9 +91,12 @@ func (g *DataGenerator) Generate() error {
 	return nil
 }
 
-func finished(tables []model.Table, generated map[string]int) bool {
-	for _, t := range tables {
-		g, ok := generated[t.Name]
+func (g *DataGenerator) finished() bool {
+	g.generatedMu.RLock()
+	defer g.generatedMu.RLock()
+
+	for _, t := range g.config.Tables {
+		g, ok := g.generated[t.Name]
 		if !ok {
 			return false
 		}

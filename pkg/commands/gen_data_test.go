@@ -82,3 +82,54 @@ func TestCalculateIterations(t *testing.T) {
 		})
 	}
 }
+
+func TestFinished(t *testing.T) {
+	cases := []struct {
+		name      string
+		tables    []model.Table
+		generated map[string]int
+		exp       bool
+	}{
+		{
+			name: "incrementing",
+			tables: []model.Table{
+				{Name: "a", Rows: 1000},
+				{Name: "b", Rows: 2000},
+				{Name: "c", Rows: 4000},
+			},
+			generated: map[string]int{
+				"a": 999,
+				"b": 2000,
+				"c": 4000,
+			},
+			exp: false,
+		},
+		{
+			name: "incrementing",
+			tables: []model.Table{
+				{Name: "a", Rows: 1000},
+				{Name: "b", Rows: 2000},
+				{Name: "c", Rows: 4000},
+			},
+			generated: map[string]int{
+				"a": 1000,
+				"b": 2000,
+				"c": 4000,
+			},
+			exp: true,
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			g := DataGenerator{
+				config: model.Config{
+					Tables: c.tables,
+				},
+				generated: c.generated,
+			}
+
+			assert.Equal(t, c.exp, g.finished())
+		})
+	}
+}
