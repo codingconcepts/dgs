@@ -15,7 +15,6 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 	"golang.org/x/sync/errgroup"
-	"golang.org/x/sync/semaphore"
 )
 
 // DataGenerator holds the runtime dependencies of gen data.
@@ -42,48 +41,71 @@ func NewDataGenerator(db *pgxpool.Pool, logger zerolog.Logger, config model.Conf
 	}
 }
 
-func (g *DataGenerator) calculateIterations() (int, map[string]int, error) {
-	minIterations := lo.MinBy(g.config.Tables, func(a, b model.Table) bool {
-		return a.Rows < b.Rows
-	})
+func (g *DataGenerator) calculateIterations() map[string]iteration {
+	iterations := map[string]iteration{}
 
-	if minIterations.Rows < g.batch {
-		return 0, nil, fmt.Errorf("batch size should be <= %d", minIterations.Rows)
+	for _, t := range g.config.Tables {
+		i := calculateIteration(t, g.batch, g.workers)
+		g.logger.Info().
+			Str("table", t.Name).
+			Int("rows", t.Rows).
+			Int("batch", i.batch).
+			Int("times", i.times).
+			Msg("iteration")
+
+		iterations[t.Name] = i
 	}
 
-	minPerIterations := minIterations.Rows / g.batch
+	return iterations
+}
 
-	iterations := map[string]int{}
-	for _, table := range g.config.Tables {
-		iterations[table.Name] = table.Rows / g.batch / minPerIterations
+func calculateIteration(table model.Table, batch, workers int) iteration {
+	if table.Rows < batch/workers {
+		return iteration{
+			times: 1,
+			batch: table.Rows / workers,
+		}
 	}
 
-	return minPerIterations, iterations, nil
+	if table.Rows <= batch {
+		return iteration{
+			batch: table.Rows / workers,
+			times: 1,
+		}
+	}
+
+	if table.Rows/batch/workers == 0 {
+		return iteration{
+			batch: batch,
+			times: 1,
+		}
+	}
+
+	return iteration{
+		batch: batch,
+		times: table.Rows / batch / workers,
+	}
+}
+
+type iteration struct {
+	times int
+	batch int
 }
 
 func (g *DataGenerator) Generate() error {
-	loops, iterations, err := g.calculateIterations()
-	if err != nil {
-		return fmt.Errorf("calculating iterations: %w", err)
-	}
+	iterations := g.calculateIterations()
 
 	g.logger.Info().
 		Int("workers", g.workers).
 		Int("batch", g.batch).
-		Int("loops", loops).
 		Msg("generating")
 
-	for k, v := range iterations {
-		g.logger.Info().Str("table", k).Int("per iteration", v).Msg("iterations")
-	}
-
 	var eg errgroup.Group
-	sem := semaphore.NewWeighted(int64(g.workers))
 
-	for l := 0; l < loops; l++ {
-		workerID := l + 1
+	for w := 0; w < g.workers; w++ {
+		workerID := w + 1
 		eg.Go(func() error {
-			if err := g.generateWorker(iterations, sem, workerID); err != nil {
+			if err := g.generateWorker(iterations, workerID); err != nil {
 				return fmt.Errorf("generate worker: %w", err)
 			}
 
@@ -105,41 +127,39 @@ func (g *DataGenerator) Generate() error {
 	return nil
 }
 
-func (g *DataGenerator) generateWorker(iterations map[string]int, sem *semaphore.Weighted, wid int) error {
-	g.logger.Info().Int("worker id", wid).Msg("worker scheduled")
-
-	sem.Acquire(context.Background(), 1)
-	sem.Release(1)
+func (g *DataGenerator) generateWorker(iterations map[string]iteration, wid int) error {
+	g.logger.Info().Int("worker id", wid).Msg("started")
 
 	data := model.NewIterationData()
 
-	g.logger.Info().Msg("worker started")
+	for _, table := range g.config.Tables {
+		iter := iterations[table.Name]
 
-	for _, t := range g.config.Tables {
-		for i := 0; i < iterations[t.Name]; i++ {
+		for i := 0; i < iter.times; i++ {
 			// Generate rows.
-			rows, err := g.generateRows(t, data, g.batch)
+			rows, err := g.generateRows(table, data, g.batch)
 			if err != nil {
 				return fmt.Errorf("generating rows: %w", err)
 			}
 
 			// Write rows.
-			if err = g.writeRows(t, data, rows); err != nil {
+			if err = g.writeRows(table, data, rows); err != nil {
 				return fmt.Errorf("writing rows: %w", err)
 			}
 
 			g.generatedMu.Lock()
-			g.generated[t.Name] += g.batch
+			g.generated[table.Name] += g.batch
 			g.logger.Info().
-				Str("table", t.Name).
+				Str("table", table.Name).
 				Int("worker id", wid).
-				Str("generated", humanize.Comma(int64(g.generated[t.Name]))).
+				Str("generated", humanize.Comma(int64(iter.batch))).
+				Str("total", humanize.Comma(int64(g.generated[table.Name]))).
 				Msg("progress")
 			g.generatedMu.Unlock()
 		}
 	}
 
-	g.logger.Info().Int("worker id", wid).Msg("worker finished")
+	g.logger.Info().Int("worker id", wid).Msg("finished")
 
 	return nil
 }
