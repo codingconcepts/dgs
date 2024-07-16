@@ -81,8 +81,9 @@ func (g *DataGenerator) Generate() error {
 	sem := semaphore.NewWeighted(int64(g.workers))
 
 	for l := 0; l < loops; l++ {
+		workerID := l + 1
 		eg.Go(func() error {
-			if err := g.generateWorker(iterations, sem, l); err != nil {
+			if err := g.generateWorker(iterations, sem, workerID); err != nil {
 				return fmt.Errorf("generate worker: %w", err)
 			}
 
