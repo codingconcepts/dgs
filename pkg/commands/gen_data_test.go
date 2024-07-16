@@ -10,126 +10,87 @@ import (
 
 func TestCalculateIterations(t *testing.T) {
 	cases := []struct {
-		name   string
-		tables []model.Table
-		batch  int
-		exp    map[string]int
-		expErr error
+		name          string
+		tables        []model.Table
+		batch         int
+		expIterations map[string]int
+		expLoop       int
+		expError      error
 	}{
 		{
-			name: "incrementing",
+			name: "batch lt smallest table and divisible",
 			tables: []model.Table{
 				{Name: "a", Rows: 1000},
 				{Name: "b", Rows: 2000},
 				{Name: "c", Rows: 4000},
 			},
 			batch: 100,
-			exp: map[string]int{
+			expIterations: map[string]int{
 				"a": 1,
 				"b": 2,
 				"c": 4,
 			},
+			expLoop: 10,
 		},
 		{
-			name: "decrementing",
+			name: "batch lt smallest table and indivisible",
 			tables: []model.Table{
-				{Name: "a", Rows: 4000},
+				{Name: "a", Rows: 1000},
 				{Name: "b", Rows: 2000},
-				{Name: "c", Rows: 1000},
+				{Name: "c", Rows: 4000},
 			},
-			batch: 100,
-			exp: map[string]int{
-				"a": 4,
+			batch: 67,
+			expIterations: map[string]int{
+				"a": 1,
 				"b": 2,
-				"c": 1,
+				"c": 4,
 			},
+			expLoop: 14,
 		},
 		{
-			name: "batch equal to smallest table",
+			name: "batch eq smallest table",
 			tables: []model.Table{
-				{Name: "a", Rows: 4000},
+				{Name: "a", Rows: 1000},
 				{Name: "b", Rows: 2000},
-				{Name: "c", Rows: 1000},
+				{Name: "c", Rows: 4000},
 			},
 			batch: 1000,
-			exp: map[string]int{
-				"a": 4,
+			expIterations: map[string]int{
+				"a": 1,
 				"b": 2,
-				"c": 1,
+				"c": 4,
 			},
+			expLoop: 1,
 		},
 		{
-			name: "larger batch than smallest table",
-			tables: []model.Table{
-				{Name: "a", Rows: 4000},
-				{Name: "b", Rows: 2000},
-				{Name: "c", Rows: 100},
-			},
-			batch:  1000,
-			expErr: errors.New("smallest table must have at least 1000 rows"),
-		},
-	}
-
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			act, err := calculateIterations(c.tables, c.batch)
-			assert.Equal(t, c.expErr, err)
-			if err != nil {
-				return
-			}
-
-			assert.Equal(t, c.exp, act)
-		})
-	}
-}
-
-func TestFinished(t *testing.T) {
-	cases := []struct {
-		name      string
-		tables    []model.Table
-		generated map[string]int
-		exp       bool
-	}{
-		{
-			name: "incrementing",
+			name: "batch gt smallest table",
 			tables: []model.Table{
 				{Name: "a", Rows: 1000},
 				{Name: "b", Rows: 2000},
 				{Name: "c", Rows: 4000},
 			},
-			generated: map[string]int{
-				"a": 999,
-				"b": 2000,
-				"c": 4000,
-			},
-			exp: false,
-		},
-		{
-			name: "incrementing",
-			tables: []model.Table{
-				{Name: "a", Rows: 1000},
-				{Name: "b", Rows: 2000},
-				{Name: "c", Rows: 4000},
-			},
-			generated: map[string]int{
-				"a": 1000,
-				"b": 2000,
-				"c": 4000,
-			},
-			exp: true,
+			batch:    10000,
+			expError: errors.New("batch size should be <= 1000"),
 		},
 	}
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			g := DataGenerator{
+			sut := &DataGenerator{
+				batch: c.batch,
 				config: model.Config{
 					Tables: c.tables,
 				},
-				generated: c.generated,
 			}
 
-			assert.Equal(t, c.exp, g.finished())
+			actLoop, actIterations, actErr := sut.calculateIterations()
+			assert.Equal(t, c.expError, actErr)
+			if actErr != nil {
+				return
+			}
+
+			assert.Equal(t, c.expIterations, actIterations)
+			assert.Equal(t, c.expLoop, actLoop)
 		})
 	}
 }
