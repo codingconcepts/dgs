@@ -66,9 +66,13 @@ dgs gen data \
 --batch 10000
 ```
 
-Query
+Queries
 
 ```sql
+-- Validate correct data count.
+SELECT COUNT(*) FROM member; SELECT COUNT(*) FROM product; SELECT COUNT(*) FROM purchase; SELECT COUNT(*) FROM purchase_line;
+
+-- Validate relationships.
 SELECT
   m.email,
   p.amount,
@@ -81,10 +85,7 @@ JOIN purchase p ON pl.purchase_id = p.id
 JOIN product pr ON pl.product_id = pr.id
 JOIN member m ON p.member_id = m.id
 LIMIT 10;
-```
 
-Cleanup
-
-```sql
+-- Truncate for the next test.
 TRUNCATE purchase_line; TRUNCATE purchase CASCADE; TRUNCATE product CASCADE; TRUNCATE member CASCADE;
 ```
