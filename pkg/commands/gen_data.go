@@ -128,10 +128,17 @@ func (g *DataGenerator) Generate() error {
 }
 
 func (g *DataGenerator) generateWorker(iterations map[string]iteration, wid int) error {
+	g.logger.Info().Int("worker id", wid).Msg("scheduled")
+
+	db, err := g.db.Acquire(context.Background())
+	if err != nil {
+		return fmt.Errorf("acquiring database connection: %w", err)
+	}
+	defer db.Release()
+
 	g.logger.Info().Int("worker id", wid).Msg("started")
 
 	data := model.NewIterationData()
-
 	for _, table := range g.config.Tables {
 		iter := iterations[table.Name]
 
@@ -143,7 +150,7 @@ func (g *DataGenerator) generateWorker(iterations map[string]iteration, wid int)
 			}
 
 			// Write rows.
-			if err = g.writeRows(table, data, rows); err != nil {
+			if err = g.writeRows(db, table, data, rows); err != nil {
 				return fmt.Errorf("writing rows: %w", err)
 			}
 
@@ -276,7 +283,7 @@ func generateValue(c model.Column) (any, error) {
 	return value, nil
 }
 
-func (g *DataGenerator) writeRows(table model.Table, data *model.IterationData, rows [][]any) error {
+func (g *DataGenerator) writeRows(db *pgxpool.Conn, table model.Table, data *model.IterationData, rows [][]any) error {
 	stmt, err := query.BuildInsert(table, rows)
 	if err != nil {
 		return fmt.Errorf("building insert: %w", err)
@@ -286,7 +293,7 @@ func (g *DataGenerator) writeRows(table model.Table, data *model.IterationData, 
 	timeout, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
-	if _, err := g.db.Exec(timeout, stmt, lo.Flatten(rows)...); err != nil {
+	if _, err := db.Exec(timeout, stmt, lo.Flatten(rows)...); err != nil {
 		return fmt.Errorf("executing query: %w", err)
 	}
 

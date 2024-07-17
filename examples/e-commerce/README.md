@@ -39,7 +39,7 @@ CREATE TABLE purchase_line (
 Config (with default row counts)
 
 ```sh
-dgs gen config \
+go run dgs.go gen config \
 --url "postgres://root@localhost:26257?sslmode=disable" \
 --schema public > examples/e-commerce/config.yaml
 ```
@@ -47,23 +47,34 @@ dgs gen config \
 Config (with custom row counts)
 
 ```sh
-dgs gen config \
+go run dgs.go gen config \
 --url "postgres://root@localhost:26257?sslmode=disable" \
 --schema public \
---row-count member:100 \
---row-count product:100 \
---row-count purchase:1000 \
---row-count purchase_line:5000 > examples/e-commerce/config.yaml
+--row-count member:100000 \
+--row-count product:10000 \
+--row-count purchase:200000 \
+--row-count purchase_line:400000 > examples/e-commerce/config.yaml
 ```
 
 Data
 
 ```sh
-dgs gen data \
+go run dgs.go gen data \
 --config "examples/e-commerce/config.yaml" \
 --url "postgres://root@localhost:26257?sslmode=disable" \
 --workers 4 \
---batch 10000
+--batch 10000 \
+--cpu-profile cpuprof
+```
+
+Profile
+
+```sh
+go tool pprof cpu.pprof
+
+(pprof) top
+
+go tool pprof -png cpu.pprof > cpupprof.png
 ```
 
 Queries

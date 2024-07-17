@@ -9,8 +9,8 @@ tables:
         - name: registered
           range: timestamp
           props:
-            min: 2014-07-19T01:00:00+01:00
-            max: 2024-07-16T01:00:00+01:00
+            min: 2014-07-20T01:00:00+01:00
+            max: 2024-07-17T01:00:00+01:00
             format: "2006-01-02T15:04:05Z"
     - name: product
       rows: 10000
@@ -44,11 +44,11 @@ tables:
         - name: ts
           range: timestamp
           props:
-            min: 2014-07-19T01:00:00+01:00
-            max: 2024-07-16T01:00:00+01:00
+            min: 2014-07-20T01:00:00+01:00
+            max: 2024-07-17T01:00:00+01:00
             format: "2006-01-02T15:04:05Z"
     - name: purchase_line
-      rows: 250000
+      rows: 400000
       columns:
         - name: id
           value: ${uuid}

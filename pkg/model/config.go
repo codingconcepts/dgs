@@ -82,7 +82,10 @@ func ParseConfig(yamlData string, logger zerolog.Logger) (Config, error) {
 			if err = parseColumn(&table, i); err != nil {
 				return Config{}, fmt.Errorf("parsing column %q: %w", table.Columns[i].Name, err)
 			}
-			logger.Info().Msgf("column %s is a %q type", table.Columns[i].Name, table.Columns[i].Mode)
+			logger.Info().
+				Str("name", table.Columns[i].Name).
+				Str("mode", string(table.Columns[i].Mode)).
+				Msgf("parsed column")
 		}
 	}
 
