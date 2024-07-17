@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/codingconcepts/dgs/pkg/model"
+	"github.com/codingconcepts/dgs/pkg/test"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -119,6 +120,42 @@ func TestCalculateIterations(t *testing.T) {
 
 			actIterations := sut.calculateIterations()
 			assert.Equal(t, c.exp, actIterations)
+		})
+	}
+}
+
+func TestGenerateRow(t *testing.T) {
+	cases := []struct {
+		name       string
+		columns    []model.Column
+		data       *model.IterationData
+		iterations int
+		exp        []any
+	}{
+		{
+			name: "inc column",
+			columns: []model.Column{
+				{
+					Mode:   model.ColumnTypeInc,
+					NextID: model.Inc(1),
+				},
+			},
+			iterations: 5,
+			exp:        []any{int64(1), int64(2), int64(3), int64(4), int64(5)},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			sut := &DataGenerator{
+				logger: test.NewNilLogger(),
+			}
+
+			for i := 0; i < c.iterations; i++ {
+				row, err := sut.generateRow(c.columns, c.data)
+				assert.NoError(t, err)
+				assert.Equal(t, c.exp[i], row[0])
+			}
 		})
 	}
 }

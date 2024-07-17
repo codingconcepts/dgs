@@ -1,0 +1,44 @@
+tables:
+
+  - name: a
+    rows: 10
+    columns:
+      - name: value
+        value: ${uuid}
+      - name: range_timestamp
+        range: timestamp
+        props:
+          min: 2014-07-20T01:00:00+01:00
+          max: 2024-07-17T01:00:00+01:00
+          format: "2006-01-02T15:04:05Z"
+      - name: range_int
+        range: int
+        props:
+          min: 1
+          max: 1000
+      - name: range_float
+        range: float
+        props:
+          min: 1
+          max: 1000
+      - name: range_bytes
+        range: bytes
+        props:
+          min: 1
+          max: 1000
+      - name: range_point
+        range: point
+        props:
+          lat: 51.04284752235447
+          lon: -0.8911379425829405
+          distance_km: 100
+
+  - name: b
+    rows: 100
+    columns:
+      - name: inc
+        inc: 1
+      - name: set
+        set: [one, two, three]
+      - name: ref
+        ref: a.value

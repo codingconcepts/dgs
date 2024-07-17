@@ -44,10 +44,10 @@ Generate config file with custom row counts (tables without a row-count will rec
 dgs gen config \
 --url "postgres://root@localhost:26257?sslmode=disable" \
 --schema public \
---row-count member:10000 \
---row-count product:1000 \
---row-count purchase:500000 \
---row-count purchase_line:1000000 > examples/e-commerce/config.yaml
+--row-count member:100000 \
+--row-count product:10000 \
+--row-count purchase:200000 \
+--row-count purchase_line:400000 > examples/e-commerce/config.yaml
 ```
 
 ### Generate data
@@ -64,5 +64,15 @@ dgs gen data \
 
 ### Todo
 
-- [ ] [Performance] Process all tables in batches (rather than one at a time), preventing the need for fetches
-- [ ] [Performance] Consider sorting data by primary key column(s) before inserting
+Performance
+
+* Consider sorting data by primary key column(s) before inserting
+
+Parity with [dg](https://github.com/codingconcepts/dg)
+
+* inc
+* each
+* range
+* match
+* CSV generation
+* README quality

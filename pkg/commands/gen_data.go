@@ -210,6 +210,9 @@ func (g *DataGenerator) generateRow(columns []model.Column, data *model.Iteratio
 		case model.ColumnTypeRef:
 			row = append(row, data.GetValue(c.Ref))
 
+		case model.ColumnTypeInc:
+			row = append(row, c.NextID())
+
 		default:
 			return nil, fmt.Errorf("invalid column mode: %q", c.Mode)
 		}

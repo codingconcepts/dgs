@@ -16,6 +16,7 @@ const (
 	ColumnTypeRange ColumnType = "range"
 	ColumnTypeRef   ColumnType = "ref"
 	ColumnTypeSet   ColumnType = "set"
+	ColumnTypeInc   ColumnType = "inc"
 )
 
 type Config struct {
@@ -38,6 +39,9 @@ type Column struct {
 	Props *RawMessage `yaml:"props,omitempty"`
 	Ref   string      `yaml:"ref,omitempty"`
 	Set   []string    `yaml:"set,omitempty"`
+	Inc   int64       `yaml:"inc,omitempty"`
+
+	NextID Sequence
 }
 
 type IntRange struct {
@@ -129,6 +133,9 @@ func parseColumn(table *Table, i int) error {
 		table.Columns[i].Mode = ColumnTypeRef
 	case table.Columns[i].Set != nil:
 		table.Columns[i].Mode = ColumnTypeSet
+	case table.Columns[i].Inc != 0:
+		table.Columns[i].Mode = ColumnTypeInc
+		table.Columns[i].NextID = Inc(table.Columns[i].Inc)
 	default:
 		return fmt.Errorf("missing value, range, ref, or set for column")
 	}
