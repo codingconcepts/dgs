@@ -54,6 +54,7 @@ var (
 		"${credit_card_cvv}":             func() any { return gofakeit.CreditCardCvv() },
 		"${credit_card_exp}":             func() any { return gofakeit.CreditCardExp() },
 		"${credit_card_type}":            func() any { return gofakeit.CreditCardType() },
+		"${credit_card_number}":          func() any { return gofakeit.CreditCardNumber(nil) },
 		"${currency_long}":               func() any { return gofakeit.CurrencyLong() },
 		"${currency_short}":              func() any { return gofakeit.CurrencyShort() },
 		"${date}":                        func() any { return gofakeit.Date() },
