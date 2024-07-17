@@ -70,7 +70,6 @@ Performance
 
 Parity with [dg](https://github.com/codingconcepts/dg)
 
-* inc
 * each
 * range
 * match
