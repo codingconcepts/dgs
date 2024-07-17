@@ -18,6 +18,7 @@ go.work.sum
 # Local testing
 compose.yml
 bench.sh
+benchmark/
 
 # Build artifacts
 releases/

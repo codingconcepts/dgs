@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/pkg/profile"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
@@ -23,8 +24,9 @@ var (
 	version string
 
 	// Shared flags.
-	url   string
-	debug bool
+	url        string
+	debug      bool
+	cpuProfile string
 
 	// Gen data flags.
 	config  string
@@ -50,6 +52,7 @@ func main() {
 
 	genCmd.PersistentFlags().StringVar(&url, "url", "", "connection string")
 	genCmd.PersistentFlags().BoolVar(&debug, "debug", false, "enhable debug logging")
+	genCmd.PersistentFlags().StringVar(&cpuProfile, "cpu-profile", "", "run cpu profiling (output to cpuprof)")
 	genCmd.MarkPersistentFlagRequired("url")
 
 	genDataCmd := &cobra.Command{
@@ -59,7 +62,7 @@ func main() {
 	}
 
 	genDataCmd.Flags().StringVar(&config, "config", "", "absolute or relative path to the config file")
-	genDataCmd.Flags().IntVar(&batch, "batch", 10000, "query and insert batch size")
+	genDataCmd.Flags().IntVar(&batch, "batch", 1000, "query and insert batch size")
 	genDataCmd.Flags().IntVar(&workers, "workers", 4, "number of workers to run concurrently")
 	genDataCmd.MarkFlagRequired("config")
 
@@ -98,6 +101,10 @@ func initialize(cmd *cobra.Command, args []string) {
 }
 
 func genData(cmd *cobra.Command, args []string) {
+	if cpuProfile != "" {
+		defer profile.Start(profile.ProfilePath(".")).Stop()
+	}
+
 	logger.Debug().Msgf("reading file: %s", config)
 	file, err := os.ReadFile(config)
 	if err != nil {
@@ -110,10 +117,7 @@ func genData(cmd *cobra.Command, args []string) {
 		logger.Fatal().Msgf("error parsing config file: %v", err)
 	}
 
-	db, err := pgxpool.New(context.Background(), url)
-	if err != nil {
-		logger.Fatal().Msgf("error connecting to database: %v", err)
-	}
+	db := mustConnect(url)
 	defer db.Close()
 
 	g := commands.NewDataGenerator(db, logger, c, workers, batch)
@@ -127,10 +131,11 @@ func genData(cmd *cobra.Command, args []string) {
 }
 
 func genConfig(cmd *cobra.Command, args []string) {
-	db, err := pgxpool.New(context.Background(), url)
-	if err != nil {
-		logger.Fatal().Msgf("error connecting to database: %v", err)
+	if cpuProfile != "" {
+		defer profile.Start(profile.ProfilePath(".")).Stop()
 	}
+
+	db := mustConnect(url)
 	defer db.Close()
 
 	config, err := commands.GenerateConfig(db, schema, rowCounts)
@@ -141,6 +146,25 @@ func genConfig(cmd *cobra.Command, args []string) {
 	if err = yaml.NewEncoder(os.Stdout).Encode(config); err != nil {
 		logger.Fatal().Msgf("error printing config: %v", err)
 	}
+}
+
+func mustConnect(url string) *pgxpool.Pool {
+	cfg, err := pgxpool.ParseConfig(url)
+	if err != nil {
+		log.Fatalf("error parsing connection string: %v", err)
+	}
+	cfg.MaxConns = int32(workers)
+
+	db, err := pgxpool.NewWithConfig(context.Background(), cfg)
+	if err != nil {
+		logger.Fatal().Msgf("error connecting to database: %v", err)
+	}
+
+	if err = db.Ping(context.Background()); err != nil {
+		log.Fatalf("error pinging database: %v", err)
+	}
+
+	return db
 }
 
 func showVersion(cmd *cobra.Command, args []string) {

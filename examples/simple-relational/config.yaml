@@ -1,0 +1,17 @@
+tables:
+    - name: person
+      rows: 1000
+      columns:
+        - name: id
+          value: ${uuid}
+        - name: full_name
+          value: ${name}
+    - name: pet
+      rows: 100000
+      columns:
+        - name: id
+          value: ${uuid}
+        - name: name
+          value: ${name}
+        - name: owner_id
+          ref: person.id

@@ -39,7 +39,7 @@ CREATE TABLE purchase_line (
 Config (with default row counts)
 
 ```sh
-dgs gen config \
+go run dgs.go gen config \
 --url "postgres://root@localhost:26257?sslmode=disable" \
 --schema public > examples/e-commerce/config.yaml
 ```
@@ -47,28 +47,43 @@ dgs gen config \
 Config (with custom row counts)
 
 ```sh
-dgs gen config \
+go run dgs.go gen config \
 --url "postgres://root@localhost:26257?sslmode=disable" \
 --schema public \
---row-count member:10000 \
---row-count product:1000 \
---row-count purchase:500000 \
---row-count purchase_line:1000000 > examples/e-commerce/config.yaml
+--row-count member:100000 \
+--row-count product:10000 \
+--row-count purchase:200000 \
+--row-count purchase_line:400000 > examples/e-commerce/config.yaml
 ```
 
 Data
 
 ```sh
-dgs gen data \
+go run dgs.go gen data \
 --config "examples/e-commerce/config.yaml" \
 --url "postgres://root@localhost:26257?sslmode=disable" \
 --workers 4 \
---batch 10000
+--batch 10000 \
+--cpu-profile cpuprof
 ```
 
-Query
+Profile
+
+```sh
+go tool pprof cpu.pprof
+
+(pprof) top
+
+go tool pprof -png cpu.pprof > cpupprof.png
+```
+
+Queries
 
 ```sql
+-- Validate correct data count.
+SELECT COUNT(*) FROM member; SELECT COUNT(*) FROM product; SELECT COUNT(*) FROM purchase; SELECT COUNT(*) FROM purchase_line;
+
+-- Validate relationships.
 SELECT
   m.email,
   p.amount,
@@ -81,10 +96,7 @@ JOIN purchase p ON pl.purchase_id = p.id
 JOIN product pr ON pl.product_id = pr.id
 JOIN member m ON p.member_id = m.id
 LIMIT 10;
-```
 
-Cleanup
-
-```sql
+-- Truncate for the next test.
 TRUNCATE purchase_line; TRUNCATE purchase CASCADE; TRUNCATE product CASCADE; TRUNCATE member CASCADE;
 ```
