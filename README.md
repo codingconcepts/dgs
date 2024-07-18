@@ -52,7 +52,7 @@ dgs gen config \
 
 ### Generate data
 
-Once you have a dgs config file, you can generate data
+Once you have a dgs config file, you can generate data.
 
 ```sh
 dgs gen data \
@@ -66,7 +66,7 @@ dgs gen data \
 
 ##### Value
 
-Generate a random value for a column, using any of the [Random generator functions](#random-generator-functions)
+Generate a random value for a column, using any of the [Random generator functions](#random-generator-functions).
 
 ```yaml
 - name: id
@@ -75,7 +75,7 @@ Generate a random value for a column, using any of the [Random generator functio
 
 ##### Range
 
-Generate a random value between a minimum and maximum value
+Generate a random value between a minimum and maximum value.
 
 ```yaml
 - name: date_of_birth
@@ -128,7 +128,7 @@ Generate a monotonically incrementing value for a column, starting from a given 
 
 ##### Set
 
-Generate a random value from a set of available values
+Generate a random value from a set of available values.
 
 ```yaml
 - name: user_type
