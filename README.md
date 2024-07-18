@@ -160,214 +160,214 @@ Generate an array of values using a given a [Random generator function](#random-
 
 | Fake function | Example |
 | ------------- | ------- |
-| ${street_suffix} | berg |
-| ${time_zone_region} | Europe/Kirov |
-| ${verb_action} | play |
-| ${connective_complaint} | e.g. |
-| ${noun_collective_thing} | archipelago |
-| ${pronoun_interrogative} | whom |
-| ${quote} | "Messenger bag pork belly wayfarers." - Hellen Botsford |
-| ${lorem_paragraph} | Dolorem ut placeat impedit nam reprehenderit sed nam natus tempora ab consequatur provident ducimus sapiente... |
-| ${preposition_double} | up to |
-| ${price} | 17.59 |
-| ${celebrity_actor} | Mel Gibson |
-| ${credit_card_exp} | 02/25 |
-| ${file_mime_type} | text/plain |
-| ${image_jpg} | [255 216 255 219 0 132 0 8 6 6 7 ...] |
-| ${connective_time} | on another occasion |
-| ${int32} | 1164719129 |
-| ${pronoun} | I |
-| ${month_string} | July |
-| ${name_prefix} | Ms. |
-| ${noun_collective_animal} | pod |
-| ${noun} | cast |
-| ${buzz_word} | process improvement |
-| ${hour} | 3 |
-| ${http_version} | HTTP/2.0 |
-| ${job_title} | Agent |
-| ${past_date} | 2024-07-17 23:54:23.96433 +0100 BST m=-39599.988705207 |
-| ${uint64} | 3060866867892574108 |
-| ${street_prefix} | North |
-| ${uint16_hex} | 0x6241 |
-| ${vegetable} | Parsnip |
-| ${word} | explode |
-| ${connective} | such as |
-| ${farm_animal} | Cow |
-| ${job_level} | Configuration |
-| ${phone_formatted} | 436-128-1918 |
-| ${dessert} | Grammie millers swedish apple pie |
-| ${float64} | 0.828329343823015 |
-| ${password} | f@Zfe@2FE fzsgC2-p809o TR |
-| ${preposition_simple} | by |
-| ${weekday} | Wednesday |
-| ${connective_casual} | an upshot of |
-| ${currency_long} | Falkland Islands (Malvinas) Pound |
-| ${month} | 4 |
-| ${noun_collective_people} | troop |
-| ${error_database} | table migration failed |
-| ${lorem_sentence} | Quidem velit distinctio expedita hic quibusdam repellat nesciunt quia eos quisquam qui qui fugit fugit ... |
-| ${noun_countable} | bush |
-| ${opera_user_agent} | Opera/9.29 (X11; Linux x86_64; en-US) Presto/2.10.200 Version/13.00 |
-| ${adjective_possessive} | my |
-| ${animal} | ant |
-| ${app_version} | 2.5.7 |
-| ${currency_short} | ILS |
-| ${time_zone} | E. Africa Standard Time |
-| ${url} | http://www.seniorcross-media.name/web-readiness/content |
-| ${error} | database not initialized |
-| ${nicecolors} | [#ffe181 #eee9e5 #fad3b2 #ffba7f #ff9c97] |
-| ${pet_name} | Gary |
-| ${pronoun_object} | me |
-| ${product_category} | jewelry |
-| ${ssn} | 651742334 |
-| ${uuid} | 5ed012d2-ffb8-472f-9c29-dc02b82a9819 |
-| ${error_grpc} | connection refused |
-| ${future_date} | 2024-07-18 16:54:23.964482 +0100 BST m=+21600.011447126 |
-| ${int8} | 43 |
-| ${product_name} | Mixer Pure Water-Resistant |
-| ${language} | Yiddish |
-| ${name_suffix} | DDS |
-| ${car_transmission_type} | Manual |
-| ${emoji} | ✅ |
-| ${http_status_code} | 304 |
-| ${language_abbreviation} | kv |
-| ${adverb_frequency_indefinite} | frequently |
-| ${movie_genre} | Sci-Fi |
-| ${verb} | was |
-| ${minute} | 8 |
-| ${phone} | 2007658555 |
-| ${product_material} | paper |
-| ${verb_helping} | was |
-| ${adjective_demonstrative} | this |
-| ${adjective_interrogative} | how |
-| ${adverb_degree} | incredibly |
-| ${adverb} | then |
-| ${zip} | 89836 |
-| ${car_model} | M5 |
-| ${longitude} | -143.541965 |
-| ${pronoun_demonstrative} | those |
-| ${pronoun_relative} | whichever |
-| ${adverb_manner} | rightfully |
-| ${bitcoin_private_key} | 5KYgHSdgw4RQ32DyhoyUnrn5VFngjDyoJRmaZURWPHL1qMW2o4o |
+| ${ach_account} | 913329610684 |
+| ${ach_routing} | 954052301 |
+| ${adjective_demonstrative} | here |
+| ${adjective_descriptive} | expensive |
+| ${adjective_indefinite} | anyone |
+| ${adjective_interrogative} | what |
+| ${adjective_possessive} | its |
+| ${adjective_proper} | Polynesian |
+| ${adjective_quantitative} | substantial |
+| ${adjective} | Senegalese |
+| ${adverb_degree} | fully |
+| ${adverb_frequency_definite} | quarterly |
+| ${adverb_frequency_indefinite} | rarely |
+| ${adverb_manner} | unexpectedly |
+| ${adverb_place} | out |
+| ${adverb_time_definite} | tomorrow |
+| ${adverb_time_indefinite} | before |
+| ${adverb} | often |
+| ${animal_type} | invertebrates |
+| ${animal} | minnow |
+| ${app_author} | ASC Partners |
+| ${app_name} | Yellowjacketbathe |
+| ${app_version} | 2.7.19 |
+| ${bitcoin_address} | 344vpjQxLmbV414cL89qypgJ129I2rphSi |
+| ${bitcoin_private_key} | 5KpHhVaqcShwHYwYkvCmeFXM5H6B2JRdkqjHBaL7DfTEqE6w212 |
+| ${book_author} | William Shakespeare |
+| ${book_genre} | Mystery |
+| ${book_title} | Zorba the Greek |
 | ${bool} | false |
-| ${breakfast} | Blueberry bakery muffins |
-| ${school} | Hawthorn Private University |
-| ${adverb_time_indefinite} | yet |
-| ${car_maker} | Citroen |
-| ${company_suffix} | and Sons |
-| ${file_extension} | html |
-| ${safari_user_agent} | Mozilla/5.0 (Macintosh; PPC Mac OS X 10_7_9 rv:4.0; en-US) AppleWebKit/531.30.8 (KHTML, like Gecko) Version/5.1 Safari/531.30.8 |
-| ${car_type} | Van |
-| ${connective_examplify} | for instance |
-| ${noun_uncountable} | equipment |
-| ${pronoun_personal} | he |
-| ${uint32_hex} | 0x2d9fd8c0 |
-| ${uint8_hex} | 0x78 |
-| ${book_title} | Sons and Lovers |
-| ${hipster_word} | schlitz |
-| ${latitude} | -83.517001 |
-| ${state} | Oklahoma |
-| ${lorem_word} | nobis |
-| ${noun_concrete} | host |
-| ${rgbcolor} | [31 189 107] |
-| ${bs} | e-tailers |
-| ${chrome_user_agent} | Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_6_8) AppleWebKit/5321 (KHTML, like Gecko) Chrome/36.0.808.0 Mobile Safari/5321 |
-| ${credit_card_number} | 6062827995210786 |
-| ${error_runtime} | undefined has no such property 'length' |
-| ${movie_name} | Finding Nemo |
-| ${product_feature} | biometric |
-| ${pronoun_reflective} | ourselves |
-| ${safecolor} | white |
-| ${dinner} | Jiffy punch |
-| ${ipv6_address} | aad9:49b6:37bb:55e9:68a0:c33a:5284:20e4 |
-| ${job_descriptor} | Principal |
-| ${lunch} | Chocolate almond roca bar |
-| ${time_zone_offset} | 3 |
-| ${uint32} | 1840782908 |
-| ${year} | 1932 |
-| ${domain_name} | centralengage.info |
-| ${http_status_code_simple} | 404 |
-| ${int64} | 8829257814977890184 |
-| ${programming_language} | Oberon |
-| ${adjective_descriptive} | red |
-| ${adverb_frequency_definite} | daily |
-| ${connective_listing} | to conclude |
-| ${credit_card_type} | Maestro |
-| ${snack} | Delicious and simple fruit dip |
-| ${verb_linking} | does |
-| ${username} | Murphy5057 |
-| ${float32} | 0.89757884 |
-| ${http_method} | PUT |
-| ${last_name} | Reynolds |
-| ${time_zone_abv} | HST |
-| ${pronoun_possessive} | mine |
-| ${uint16} | 39488 |
-| ${int16} | -17752 |
-| ${nanosecond} | 426055826 |
-| ${preposition} | along with |
-| ${product_description} | Inspect it me instead while neck today Kyrgyz yet wad. |
-| ${country} | Saint Barthélemy |
-| ${day} | 26 |
-| ${hobby} | Ghost hunting |
-| ${phrase} | or something |
-| ${mac_address} | 08:a4:47:44:a9:12 |
-| ${street_number} | 67745 |
-| ${uint128_hex} | 0x7a915faaccf77ad43f3e9f202a51032b |
-| ${app_name} | Regimenthad |
-| ${company} | xDayta |
-| ${error_http_client} | im a teapot |
-| ${hipster_sentence} | Loko loko jean shorts fashion axe wayfarers intelligentsia irony freegan waistcoat vinegar PBR&B .... |
-| ${noun_abstract} | anger |
-| ${uint8} | 103 |
-| ${user_agent} | Mozilla/5.0 (Macintosh; PPC Mac OS X 10_8_9) AppleWebKit/5350 (KHTML, like Gecko) Chrome/40.0.861.0 Mobile Safari/5350 |
-| ${adjective_proper} | Sri-Lankan |
-| ${city} | Chula Vista |
-| ${email} | mackenziecole@glover.com |
-| ${name} | Enos Graham |
-| ${color} | Cornsilk |
-| ${firefox_user_agent} | Mozilla/5.0 (X11; Linux i686; rv:7.0) Gecko/1986-09-13 Firefox/37.0 |
-| ${noun_common} | case |
-| ${second} | 56 |
-| ${company_slogan} | algorithm action-items Family, knowledge user. |
-| ${hexcolor} | #bcbe72 |
-| ${image_png} | [137 80 78 71 13 10 26 10 0 ...] |
-| ${street_name} | Parkways |
-| ${adjective_quantitative} | sufficient |
-| ${adverb_time_definite} | now |
-| ${app_author} | Zechariah Tillman |
-| ${book_author} | Astrid Lindgren |
-| ${error_http_server} | not implemented |
-| ${gender} | male |
-| ${ipv4_address} | 219.125.34.114 |
-| ${isin} | GGHB1IW25R50 |
-| ${bitcoin_address} | 3p9EOd05o4lJf9gu2VD99h7sy97 |
-| ${book_genre} | Speculative |
-| ${country_abr} | CI |
-| ${credit_card_cvv} | 400 |
-| ${time_zone_full} | (UTC+12:00) Magadan |
-| ${uint64_hex} | 0xea07822251f8e6f1 |
-| ${cusip} | SCLZ40FK0 |
+| ${breakfast} | Egg flowers |
+| ${bs} | extensible |
+| ${buzz_word} | analyzer |
+| ${car_business} | Adam Weitsman |
+| ${car_fuel_type} | Electric |
+| ${car_maker} | Cadillac |
+| ${car_model} | Highlander 2wd |
+| ${car_sport} | Andy Murray |
+| ${car_transmission_type} | Manual |
+| ${car_type} | Pickup truck |
+| ${celebrity_actor} | Peter Jackson |
+| ${chrome_user_agent} | Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_7_4) AppleWebKit/5320 (KHTML, like Gecko) Chrome/37.0.898.0 Mobile Safari/5320 |
+| ${city} | Boise |
+| ${color} | ForestGreen |
+| ${company_slogan} | 24 hour Care, leverage Expression. |
+| ${company_suffix} | Inc |
+| ${company} | Informatica |
+| ${connective_casual} | nevertheless |
+| ${connective_complaint} | in other words |
+| ${connective_examplify} | provided that |
+| ${connective_listing} | for one thing |
+| ${connective_time} | at this point |
+| ${connective} | for instance |
+| ${country_abr} | HR |
+| ${country} | Turks and Caicos Islands |
+| ${credit_card_cvv} | 759 |
+| ${credit_card_exp} | 01/27 |
+| ${credit_card_number} | 598987466642233434 |
+| ${credit_card_type} | Hipercard |
+| ${currency_long} | Sri Lanka Rupee |
+| ${currency_short} | SDG |
+| ${cusip} | 0RLFMNX21 |
+| ${date} | 1924-06-04 14:29:12.804889916 +0000 UTC |
+| ${day} | 3 |
+| ${dessert} | Old school deja vu chocolate peanut butter squares |
+| ${dinner} | Savory pita chips |
+| ${domain_name} | internationaltarget.org |
+| ${domain_suffix} | net |
+| ${email} | lawrencelabadie@huel.com |
+| ${emoji} | 🧯 |
+| ${error_database} | database connection error |
+| ${error_grpc} | connection is shut down |
+| ${error_http_client} | payload too large |
+| ${error_http_server} | bad gateway |
 | ${error_http} | invalid method |
-| ${hipster_paragraph} | Quinoa ugh artisan organic wayfarers you probably haven't heard of them five dollar toast slow-carb ... |
-| ${car_sport} | Jackie Joyner-Kersee |
-| ${flipacoin} | Heads |
-| ${state_abr} | ND |
-| ${ach_routing} | 754697009 |
-| ${adjective_indefinite} | some |
-| ${adverb_place} | over |
-| ${car_business} | Phil Knight |
-| ${car_fuel_type} | Ethanol |
-| ${first_name} | Keanu |
-| ${question} | Gluten-free asymmetrical tacos PBR&B street 8-bit literally? |
-| ${street} | 59013 Crescentfort |
-| ${domain_suffix} | info |
-| ${fruit} | Blackberry |
-| ${preposition_compound} | in favor of |
-| ${uint256_hex} | 0x9e473d233a81574126092e4eee878c616e795e4f62176353e088211d7f81bc83 |
-| ${ach_account} | 309982025208 |
-| ${adjective} | that |
-| ${animal_type} | fish |
-| ${date} | 1992-12-06 20:25:28.400810941 +0000 UTC |
+| ${error_runtime} | not enough arguments |
+| ${error} | [object Object] |
+| ${farm_animal} | Sheep |
+| ${file_extension} | avi |
+| ${file_mime_type} | image/bmp |
+| ${firefox_user_agent} | Mozilla/5.0 (Windows NT 5.1; en-US; rv:1.9.1.20) Gecko/1985-10-11 Firefox/36.0 |
+| ${first_name} | Pansy |
+| ${flipacoin} | Tails |
+| ${float32} | 0.5662413 |
+| ${float64} | 0.33995204123600065 |
+| ${fruit} | Rambutan |
+| ${future_date} | 2024-07-18 16:10:46.558835 +0100 BST m=+18000.000711668 |
+| ${gender} | female |
+| ${hexcolor} | #3edf1e |
+| ${hipster_paragraph} | Fixie goth pitchfork master messenger bag scenester post-ironic ... |
+| ${hipster_sentence} | Lomo authentic humblebrag green juice butcher marfa brooklyn waistcoat ... |
+| ${hipster_word} | selvage |
+| ${hobby} | Homebrewing |
+| ${hour} | 9 |
+| ${http_method} | HEAD |
+| ${http_status_code_simple} | 200 |
+| ${http_status_code} | 502 |
+| ${http_version} | HTTP/2.0 |
+| ${image_jpg} | [255 216 255 219 0 132 0 8 6 6 7 6 5 8 7 ...] |
+| ${image_png} | [137 80 78 71 13 10 26 10 0 0 0 13 73 72 ...] |
+| ${int16} | -14249 |
+| ${int32} | 1398589957 |
+| ${int64} | 3609435043382311606 |
+| ${int8} | -93 |
+| ${ipv4_address} | 240.242.187.215 |
+| ${ipv6_address} | d32c:ebb5:1e18:2620:40cc:f49b:3027:5459 |
+| ${isin} | KWVTK4GLRO92 |
+| ${job_descriptor} | Customer |
+| ${job_level} | Applications |
+| ${job_title} | Representative |
+| ${language_abbreviation} | wa |
+| ${language} | Macedonian |
+| ${last_name} | Schumm |
+| ${latitude} | 78.05631 |
+| ${longitude} | -46.346742 |
+| ${lorem_paragraph} | Perspiciatis veritatis commodi sed nam ex recusandae consequuntur ... |
+| ${lorem_sentence} | Sequi eos quia molestias est doloribus at consequatur deleniti ... |
+| ${lorem_word} | iure |
+| ${lunch} | Salata marouli romaine lettuce salad |
+| ${mac_address} | 24:1f:13:fd:6d:d4 |
+| ${minute} | 34 |
+| ${month_string} | July |
+| ${month} | 10 |
+| ${movie_genre} | Mystery |
+| ${movie_name} | Intouchables |
+| ${name_prefix} | Ms. |
+| ${name_suffix} | V |
+| ${name} | Stefanie Koelpin |
+| ${nanosecond} | 285275999 |
+| ${nicecolors} | [#a3a948 #edb92e #f85931 #ce1836 #009989] |
+| ${noun_abstract} | care |
+| ${noun_collective_animal} | exaltation |
+| ${noun_collective_people} | posse |
+| ${noun_collective_thing} | archipelago |
+| ${noun_common} | hand |
+| ${noun_concrete} | earrings |
+| ${noun_countable} | holiday |
+| ${noun_uncountable} | yoga |
+| ${noun} | dynasty |
+| ${opera_user_agent} | Opera/8.21 (Windows 98; en-US) Presto/2.12.257 Version/13.00 |
+| ${password} | ZqM1A.53oQ NpK1H0F!3r95*! |
+| ${past_date} | 2024-07-18 09:10:46.565036 +0100 BST m=-7199.993087291 |
+| ${pet_name} | Bark Twain |
+| ${phone_formatted} | 463.696.7163 |
+| ${phone} | 3602152186 |
+| ${phrase} | that's what I'm talking about |
+| ${preposition_compound} | up to |
+| ${preposition_double} | next to |
+| ${preposition_simple} | till |
+| ${preposition} | out of |
+| ${price} | 40.65 |
+| ${product_category} | tools and hardware |
+| ${product_description} | Frequently place oops how way. |
+| ${product_feature} | multi-functional |
+| ${product_material} | silver |
+| ${product_name} | Ultra-Lightweight Printer Fresh |
+| ${programming_language} | BeanShell |
+| ${pronoun_demonstrative} | that |
+| ${pronoun_interrogative} | when |
+| ${pronoun_object} | me |
+| ${pronoun_personal} | she |
+| ${pronoun_possessive} | ours |
+| ${pronoun_reflective} | myself |
+| ${pronoun_relative} | whose |
+| ${pronoun} | as |
+| ${question} | Microdosing tumblr organic? |
+| ${quote} | "XOXO occupy tattooed meggings whatever drinking organic." - Madelynn Gutkowski |
+| ${rgbcolor} | [174 224 122] |
+| ${safari_user_agent} | Mozilla/5.0 (Windows; U; Windows NT 6.1) AppleWebKit/535.24.5 (KHTML, like Gecko) Version/4.1 Safari/535.24.5 |
+| ${safecolor} | gray |
+| ${school} | Harborview Private High School |
+| ${second} | 25 |
+| ${snack} | Spicy roasted butternut seeds pumpkin seeds |
+| ${ssn} | 508233622 |
+| ${state_abr} | FL |
+| ${state} | North Dakota |
+| ${street_name} | Lodge |
+| ${street_number} | 6725 |
+| ${street_prefix} | West |
+| ${street_suffix} | mouth |
+| ${street} | 615 New Courtfurt |
+| ${time_zone_abv} | KST |
+| ${time_zone_full} | (UTC-12:00) International Date Line West |
+| ${time_zone_offset} | -3 |
+| ${time_zone_region} | America/Mendoza |
+| ${time_zone} | Paraguay Standard Time |
+| ${uint128_hex} | 0xb04af94cb34cc417eba86daeee1e1326 |
+| ${uint16_hex} | 0x64e7 |
+| ${uint16} | 30988 |
+| ${uint256_hex} | 0x8167bc9db8d22679668c7da369b2cad94a6ac979d6c013f2846296016e0cb92b |
+| ${uint32_hex} | 0xe70e5724 |
+| ${uint32} | 3437344718 |
+| ${uint64_hex} | 0x19715e3d1d09a53e |
+| ${uint64} | 16119066877620660254 |
+| ${uint8_hex} | 0x81 |
+| ${uint8} | 89 |
+| ${url} | https://www.internationalsupply-chains.biz/unleash/cross-platform |
+| ${user_agent} | Mozilla/5.0 (Macintosh; U; PPC Mac OS X 10_9_1 rv:7.0; en-US) AppleWebKit/535.30.2 (KHTML, like Gecko) Version/4.0 Safari/535.30.2 |
+| ${username} | Williamson4993 |
+| ${uuid} | 718396a8-145b-4522-bc2c-f1a572645cd9 |
+| ${vegetable} | Snow Peas |
+| ${verb_action} | eat |
+| ${verb_helping} | should |
+| ${verb_linking} | are |
+| ${verb} | turn |
+| ${weekday} | Wednesday |
+| ${word} | infrequently |
+| ${year} | 1914 |
+| ${zip} | 80752 |
 
 ### Todo
 
