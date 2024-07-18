@@ -17,6 +17,7 @@ const (
 	ColumnTypeRef   ColumnType = "ref"
 	ColumnTypeSet   ColumnType = "set"
 	ColumnTypeInc   ColumnType = "inc"
+	ColumnTypeArray ColumnType = "array"
 )
 
 type Config struct {
@@ -35,13 +36,14 @@ type Column struct {
 	Name  string      `yaml:"name"`
 	Mode  ColumnType  `yaml:"-"`
 	Value string      `yaml:"value,omitempty"`
+	Array string      `yaml:"array,omitempty"`
 	Range string      `yaml:"range,omitempty"`
 	Props *RawMessage `yaml:"props,omitempty"`
 	Ref   string      `yaml:"ref,omitempty"`
 	Set   []string    `yaml:"set,omitempty"`
 	Inc   int64       `yaml:"inc,omitempty"`
 
-	NextID Sequence
+	NextID Sequence `yaml:"-"`
 }
 
 type IntRange struct {
@@ -54,15 +56,15 @@ type FloatRange struct {
 	Max float64 `yaml:"max"`
 }
 
-type ByteRange struct {
-	Min int64 `yaml:"min"`
-	Max int64 `yaml:"max"`
-}
-
 type TimestampRange struct {
 	Min    time.Time `yaml:"min"`
 	Max    time.Time `yaml:"max"`
 	Format string    `yaml:"format"`
+}
+
+type IntervalRange struct {
+	Min time.Duration `yaml:"min"`
+	Max time.Duration `yaml:"max"`
 }
 
 type PointRange struct {
@@ -136,6 +138,8 @@ func parseColumn(table *Table, i int) error {
 	case table.Columns[i].Inc != 0:
 		table.Columns[i].Mode = ColumnTypeInc
 		table.Columns[i].NextID = Inc(table.Columns[i].Inc)
+	case table.Columns[i].Array != "":
+		table.Columns[i].Mode = ColumnTypeArray
 	default:
 		return fmt.Errorf("missing value, range, ref, or set for column")
 	}

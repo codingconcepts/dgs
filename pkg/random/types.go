@@ -8,11 +8,33 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/samber/lo"
 )
 
 const (
 	earthRadiusMiles = 3958.8
 )
+
+var (
+	ascii    = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	asciiLen = len(ascii) - 1
+)
+
+func BitString(min, max int64) []byte {
+	size := int(Int(min, max))
+	result := make([]byte, size)
+
+	for i := 0; i < size; i++ {
+		n := Int(0, 10)
+		if n%2 == 0 {
+			result[i] = 1
+		} else {
+			result[i] = 0
+		}
+	}
+
+	return result
+}
 
 func Int(min, max int64) int64 {
 	if min == max {
@@ -53,6 +75,21 @@ func Timestamp(min, max time.Time) time.Time {
 
 	randUnix := minUnix + rand.Int63n(delta)
 	return time.Unix(randUnix, 0)
+}
+
+func Interval(min, max time.Duration) time.Duration {
+	if min == max {
+		return min
+	}
+
+	if min > max {
+		min, max = max, min
+	}
+
+	diff := max - min
+	randomDiff := time.Duration(rand.Int63n(int64(diff)))
+
+	return min + randomDiff
 }
 
 func Point(lat, lon, radiusMiles float64) (float64, float64) {
@@ -97,6 +134,29 @@ func Bytes(min, max int64) ([]byte, error) {
 	}
 
 	return result, nil
+}
+
+func String(min, max int64) string {
+	size := Int(min, max)
+	result := make([]rune, size)
+
+	for i := 0; i < int(size); i++ {
+		result[i] = rune(ascii[rand.Intn(asciiLen)])
+	}
+
+	return string(result)
+}
+
+func Array(min, max int64, value string) []any {
+	size := Int(min, max)
+
+	result := make([]any, size)
+	for i := 0; i < int(size); i++ {
+		v, ok := Replacements[value]
+		result[i] = lo.Ternary(ok, v(), nil)
+	}
+
+	return result
 }
 
 func UUID() string {

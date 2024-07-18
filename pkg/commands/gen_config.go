@@ -65,6 +65,7 @@ type columnDefinition struct {
 	Default          *string
 	Nullable         string
 	DataType         string
+	CharMaxLength    *int64
 	UserDefintedType *[]string
 	ForeignKey       *string
 }
@@ -79,7 +80,7 @@ func fetchColumnDefinitions(db *pgxpool.Pool, schema string) ([]columnDefinition
 	var d columnDefinition
 
 	for rows.Next() {
-		if err = rows.Scan(&d.TableName, &d.ColumnName, &d.Default, &d.Nullable, &d.DataType, &d.UserDefintedType, &d.ForeignKey); err != nil {
+		if err = rows.Scan(&d.TableName, &d.ColumnName, &d.Default, &d.Nullable, &d.CharMaxLength, &d.DataType, &d.UserDefintedType, &d.ForeignKey); err != nil {
 			return nil, fmt.Errorf("scanning column definition: %w", err)
 		}
 		definitions = append(definitions, d)
@@ -119,11 +120,17 @@ func toConfigs(definitions []columnDefinition, rowCountMap map[string]int) ([]mo
 				continue
 			}
 
-			column, err := createRegularColumn(c)
+			column, ok, err := createRegularColumn(c)
 			if err != nil {
 				return nil, fmt.Errorf("creating column: %w", err)
 			}
-			table.Columns = append(table.Columns, column)
+
+			if ok {
+				table.Columns = append(table.Columns, column)
+				continue
+			}
+
+			// Ignore unsupported columns.
 		}
 
 		tables = append(tables, table)
@@ -153,40 +160,113 @@ func createEnumColumn(c columnDefinition) model.Column {
 	}
 }
 
-func createRegularColumn(c columnDefinition) (model.Column, error) {
+func createRegularColumn(c columnDefinition) (model.Column, bool, error) {
 	var err error
+	var ok bool
 
 	column := model.Column{
 		Name: c.ColumnName,
+	}
+
+	// Handle array types.
+	if strings.HasPrefix(c.DataType, "_") {
+		column.Array, ok = valueForArrayColumn(c)
+		if ok {
+			if column.Props, err = model.NewRawMessage(model.IntRange{Min: 1, Max: 10}); err != nil {
+				return model.Column{}, false, fmt.Errorf("creating props for array: %w", err)
+			}
+
+			return column, true, nil
+		}
+
+		return model.Column{}, false, nil
+	}
+
+	maxCharLen := int64(255)
+	if c.CharMaxLength != nil {
+		maxCharLen = *c.CharMaxLength
 	}
 
 	switch c.DataType {
 	case "uuid":
 		column.Value = "${uuid}"
 
-	case "text":
-		column.Value = valueForTextColumn(c)
+	case "text", "varchar":
+		column.Value, ok = valueForTextColumn(c)
+		if !ok {
+			column.Range = "string"
+			if column.Props, err = model.NewRawMessage(model.IntRange{Min: 1, Max: maxCharLen}); err != nil {
+				return model.Column{}, false, fmt.Errorf("creating props for string range: %w", err)
+			}
+		}
+
+	case "inet":
+		column.Value = "${ipv4_address}"
+
+	case "bool":
+		column.Value = "${bool}"
+
+	case "int2":
+		column.Value = "${int16}"
+
+	case "int4":
+		column.Value = "${int32}"
+
+	case "oid":
+		column.Value = "${uint32}"
+
+	// case "bit":
+	// 	column.Range = "bit"
+	// 	if column.Props, err = model.NewRawMessage(model.IntRange{Min: maxCharLen, Max: maxCharLen}); err != nil {
+	// 		return model.Column{}, false, fmt.Errorf("creating props for bit range: %w", err)
+	// 	}
+
+	// case "varbit":
+	// 	column.Range = "bit"
+	// 	if column.Props, err = model.NewRawMessage(model.IntRange{Min: 1, Max: maxCharLen}); err != nil {
+	// 		return model.Column{}, false, fmt.Errorf("creating props for varbit range: %w", err)
+	// 	}
+
+	case "bytea":
+		column.Range = "bytes"
+		if column.Props, err = model.NewRawMessage(model.IntRange{Min: 1, Max: maxCharLen}); err != nil {
+			return model.Column{}, false, fmt.Errorf("creating props for bytes range: %w", err)
+		}
 
 	case "int8":
 		column.Range = "int"
 		if column.Props, err = model.NewRawMessage(model.IntRange{Min: 1, Max: 1000000}); err != nil {
-			return model.Column{}, fmt.Errorf("creating props for int range: %w", err)
+			return model.Column{}, false, fmt.Errorf("creating props for int range: %w", err)
 		}
 
-	case "numeric":
+	case "numeric", "float4", "float8":
 		column.Range = "float"
 		if column.Props, err = model.NewRawMessage(model.FloatRange{Min: 1, Max: 1000}); err != nil {
-			return model.Column{}, fmt.Errorf("creating props for float range: %w", err)
+			return model.Column{}, false, fmt.Errorf("creating props for float range: %w", err)
+		}
+
+	case "time", "timetz":
+		column.Range = "timestamp"
+		if column.Props, err = valueForTimeColumn("15:04:05"); err != nil {
+			return model.Column{}, false, fmt.Errorf("creating props for timestamp range: %w", err)
 		}
 
 	case "timestamp", "timestamptz":
 		column.Range = "timestamp"
-		if column.Props, err = model.NewRawMessage(model.TimestampRange{
-			Min:    time.Now().Add(-time.Hour * 87600).Truncate(time.Hour * 24), // 10 yeras
-			Max:    time.Now().Truncate(time.Hour * 24),
-			Format: "2006-01-02T15:04:05Z",
-		}); err != nil {
-			return model.Column{}, fmt.Errorf("creating props for timestamp range: %w", err)
+		if column.Props, err = valueForTimeColumn("2006-01-02T15:04:05Z"); err != nil {
+			return model.Column{}, false, fmt.Errorf("creating props for timestamp range: %w", err)
+		}
+
+	case "date":
+		column.Range = "timestamp"
+		if column.Props, err = valueForTimeColumn("2006-01-02"); err != nil {
+			return model.Column{}, false, fmt.Errorf("creating props for timestamp range: %w", err)
+		}
+
+	case "interval":
+		column.Range = "interval"
+		if column.Props, err = model.NewRawMessage(model.IntervalRange{Min: time.Second, Max: time.Hour * 24}); err != nil {
+			return model.Column{}, false, fmt.Errorf("creating props for interval range: %w", err)
 		}
 
 	case "geometry":
@@ -196,25 +276,46 @@ func createRegularColumn(c columnDefinition) (model.Column, error) {
 			Lon:        -0.147515,
 			DistanceKM: 20,
 		}); err != nil {
-			return model.Column{}, fmt.Errorf("creating props for point range: %w", err)
+			return model.Column{}, false, fmt.Errorf("creating props for point range: %w", err)
 		}
 
 	default:
-		return model.Column{}, fmt.Errorf("invalid type %q", c.DataType)
+		return model.Column{}, false, nil
 	}
 
-	return column, nil
+	return column, true, nil
 }
 
-func valueForTextColumn(c columnDefinition) string {
+func valueForTimeColumn(format string) (*model.RawMessage, error) {
+	return model.NewRawMessage(model.TimestampRange{
+		Min:    time.Now().Add(-time.Hour * 87600).Truncate(time.Hour * 24), // 10 yeras
+		Max:    time.Now().Truncate(time.Hour * 24),
+		Format: format,
+	})
+}
+
+func valueForTextColumn(c columnDefinition) (string, bool) {
 	name := strings.ToLower(c.ColumnName)
 
 	switch {
 	case strings.Contains(name, "email"):
-		return "${email}"
+		return "${email}", true
 	case strings.Contains(name, "name"):
-		return "${name}"
+		return "${name}", true
 	default:
-		return "${COMPLETE}"
+		return "", false
 	}
+}
+
+func valueForArrayColumn(c columnDefinition) (string, bool) {
+	itemType := strings.TrimPrefix(c.DataType, "_")
+
+	switch strings.ToLower(itemType) {
+	case "text":
+		return "${fruit}", true
+	case "int8":
+		return "${http_status_code_simple}", true
+	}
+
+	return "", false
 }

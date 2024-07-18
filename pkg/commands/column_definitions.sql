@@ -6,6 +6,7 @@ WITH
       ordinal_position,
       column_default,
       is_nullable,
+      character_maximum_length,
       udt_name AS data_type
     FROM information_schema.columns
     WHERE table_schema = $1
@@ -39,6 +40,7 @@ SELECT
   c.column_name,
   c.column_default,
   c.is_nullable,
+  c.character_maximum_length,
   CASE
     WHEN udt.type_type = 'e' THEN 'enum'
     ELSE c.data_type

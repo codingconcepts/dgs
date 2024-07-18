@@ -11,6 +11,7 @@ import (
 	"github.com/codingconcepts/dgs/pkg/query"
 	"github.com/codingconcepts/dgs/pkg/random"
 	"github.com/dustin/go-humanize"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
@@ -190,6 +191,20 @@ func (g *DataGenerator) generateRow(columns []model.Column, data *model.Iteratio
 
 	for _, c := range columns {
 		switch c.Mode {
+		case model.ColumnTypeArray:
+			var x model.IntRange
+			if err := c.Props.Unmarshal(&x); err != nil {
+				return nil, fmt.Errorf("decoding int array props: %w", err)
+			}
+
+			a := random.Array(x.Min, x.Max, c.Array)
+			pga := pgtype.Array[any]{
+				Elements: a,
+				Valid:    true,
+				Dims:     []pgtype.ArrayDimension{{Length: int32(len(a)), LowerBound: 1}},
+			}
+			row = append(row, pga)
+
 		case model.ColumnTypeValue:
 			val, err := generateValue(c)
 			if err != nil {
@@ -239,11 +254,33 @@ func generateRange(c model.Column) (any, error) {
 		return random.Float(x.Min, x.Max), nil
 
 	case "bytes":
-		var x model.ByteRange
+		var x model.IntRange
 		if err := c.Props.Unmarshal(&x); err != nil {
 			return nil, fmt.Errorf("decoding bytes range props: %w", err)
 		}
 		return random.Bytes(x.Min, x.Max)
+
+	case "string":
+		var x model.IntRange
+		if err := c.Props.Unmarshal(&x); err != nil {
+			return nil, fmt.Errorf("decoding bytes string props: %w", err)
+		}
+		return random.String(x.Min, x.Max), nil
+
+	// case "bit":
+	// 	var x model.IntRange
+	// 	if err := c.Props.Unmarshal(&x); err != nil {
+	// 		return nil, fmt.Errorf("decoding bit range props: %w", err)
+	// 	}
+
+	// 	bits := random.BitString(x.Min, x.Max)
+	// 	log.Println(c.Name, x.Min, x.Max, bits, len(bits))
+
+	// 	return pgtype.Bits{
+	// 		Bytes: bits,
+	// 		Len:   int32(len(bits)),
+	// 		Valid: true,
+	// 	}, nil
 
 	case "timestamp":
 		var x model.TimestampRange
@@ -253,6 +290,13 @@ func generateRange(c model.Column) (any, error) {
 
 		v := random.Timestamp(x.Min, x.Max)
 		return v.Format(x.Format), nil
+
+	case "interval":
+		var x model.IntervalRange
+		if err := c.Props.Unmarshal(&x); err != nil {
+			return nil, fmt.Errorf("decoding interval range props: %w", err)
+		}
+		return random.Interval(x.Min, x.Max), nil
 
 	case "point":
 		var x model.PointRange

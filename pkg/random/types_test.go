@@ -178,3 +178,171 @@ func TestBytes(t *testing.T) {
 		})
 	}
 }
+
+func TestString(t *testing.T) {
+	cases := []struct {
+		name    string
+		min     int64
+		max     int64
+		expFunc func(s string) bool
+	}{
+		{
+			name: "equal min max",
+			min:  10,
+			max:  10,
+			expFunc: func(s string) bool {
+				return len(s) == 10
+			},
+		},
+		{
+			name: "different min max",
+			min:  10,
+			max:  100,
+			expFunc: func(s string) bool {
+				return len(s) >= 10 && len(s) < 100
+			},
+		},
+		{
+			name: "min gt max",
+			min:  100,
+			max:  10,
+			expFunc: func(s string) bool {
+				return len(s) >= 10 && len(s) < 100
+			},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			act := String(c.min, c.max)
+
+			assert.True(t, c.expFunc(act))
+		})
+	}
+}
+
+func TestBitString(t *testing.T) {
+	cases := []struct {
+		name    string
+		min     int64
+		max     int64
+		expFunc func(b []byte) bool
+	}{
+		{
+			name: "equal min max",
+			min:  10,
+			max:  10,
+			expFunc: func(b []byte) bool {
+				return len(b) == 10
+			},
+		},
+		{
+			name: "different min max",
+			min:  10,
+			max:  100,
+			expFunc: func(b []byte) bool {
+				return len(b) >= 10 && len(b) < 100
+			},
+		},
+		{
+			name: "min gt max",
+			min:  100,
+			max:  10,
+			expFunc: func(b []byte) bool {
+				return len(b) >= 10 && len(b) < 100
+			},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			act := BitString(c.min, c.max)
+
+			assert.True(t, c.expFunc(act))
+		})
+	}
+}
+
+func TestInterval(t *testing.T) {
+	cases := []struct {
+		name    string
+		min     time.Duration
+		max     time.Duration
+		expFunc func(d time.Duration) bool
+	}{
+		{
+			name: "equal min max",
+			min:  time.Hour,
+			max:  time.Hour,
+			expFunc: func(d time.Duration) bool {
+				return d == time.Hour
+			},
+		},
+		{
+			name: "different min max",
+			min:  time.Minute,
+			max:  time.Hour,
+			expFunc: func(d time.Duration) bool {
+				return d >= time.Minute && d < time.Hour
+			},
+		},
+		{
+			name: "min gt max",
+			min:  time.Hour,
+			max:  time.Minute,
+			expFunc: func(d time.Duration) bool {
+				return d >= time.Minute && d < time.Hour
+			},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			act := Interval(c.min, c.max)
+
+			assert.True(t, c.expFunc(act))
+		})
+	}
+}
+
+func TestArray(t *testing.T) {
+	cases := []struct {
+		name    string
+		min     int64
+		max     int64
+		expFunc func(a []any) bool
+	}{
+		{
+			name: "equal min max",
+			min:  3,
+			max:  3,
+			expFunc: func(a []any) bool {
+				return len(a) == 3
+			},
+		},
+		{
+			name: "different min max",
+			min:  10,
+			max:  100,
+			expFunc: func(a []any) bool {
+				return len(a) >= 10 && len(a) < 100
+			},
+		},
+		{
+			name: "min gt max",
+			min:  100,
+			max:  10,
+			expFunc: func(a []any) bool {
+				return len(a) >= 10 && len(a) < 100
+			},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			act := Array(c.min, c.max, "${fruit}")
+
+			assert.True(t, c.expFunc(act))
+		})
+	}
+}
