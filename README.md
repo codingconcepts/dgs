@@ -371,9 +371,13 @@ Generate an array of values using a given a [Random generator function](#random-
 
 ### Todo
 
+Fix
+
+* Don't generate config column for computed columns
+
 Performance
 
-* Consider sorting data by primary key column(s) before inserting
+* Introduce a `Literal` generator, allowing for `gen_random_uuid()` (and hence fast path inserts) to be used when inserting data.
 
 Parity with [dg](https://github.com/codingconcepts/dg)
 
@@ -381,3 +385,4 @@ Parity with [dg](https://github.com/codingconcepts/dg)
 * range
 * match
 * CSV generation
+* Inputs / Existing Tables
