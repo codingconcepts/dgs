@@ -17,7 +17,7 @@ func BuildInsert(table model.Table, rows [][]any) (string, error) {
 	})
 
 	b.WriteString(
-		"INSERT INTO %s (%s) VALUES ",
+		"UPSERT INTO %s (%s) VALUES ",
 		table.Name,
 		strings.Join(columnNames, ","),
 	)

@@ -337,7 +337,7 @@ func (g *DataGenerator) writeRows(db *pgxpool.Conn, table model.Table, data *mod
 	}
 	g.logger.Debug().Str("stmt", stmt).Msg("running insert")
 
-	timeout, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	timeout, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
 
 	if _, err := db.Exec(timeout, stmt, lo.Flatten(rows)...); err != nil {

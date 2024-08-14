@@ -18,8 +18,8 @@ go.work.sum
 # Local testing
 compose.yml
 bench.sh
-benchmark/
 scratchpad/
+*.pprof
 
 # Build artifacts
 releases/
