@@ -9,7 +9,7 @@ import (
 	"github.com/samber/lo"
 )
 
-func BuildInsert(table model.Table, rows [][]any) (string, error) {
+func BuildInsert(table model.Table, rows [][]any, insertMode model.InsertMode) (string, error) {
 	var b model.ErrBuilder
 
 	columnNames := lo.Map(table.Columns, func(c model.Column, i int) string {
@@ -17,7 +17,8 @@ func BuildInsert(table model.Table, rows [][]any) (string, error) {
 	})
 
 	b.WriteString(
-		"UPSERT INTO %s (%s) VALUES ",
+		"%s INTO %s (%s) VALUES ",
+		lo.Ternary(insertMode == model.InsertModeInsert || insertMode == model.InsertModeConflict, "INSERT", "UPSERT"),
 		table.Name,
 		strings.Join(columnNames, ","),
 	)
@@ -36,6 +37,10 @@ func BuildInsert(table model.Table, rows [][]any) (string, error) {
 		}
 
 		argIndex += len(table.Columns)
+	}
+
+	if insertMode == model.InsertModeConflict {
+		b.WriteString(" ON CONFLICT DO NOTHING")
 	}
 
 	if err := b.Error(); err != nil {

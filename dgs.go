@@ -29,9 +29,10 @@ var (
 	cpuProfile string
 
 	// Gen data flags.
-	config  string
-	batch   int
-	workers int
+	config     string
+	batch      int
+	workers    int
+	insertMode string
 
 	// Gen config flags.
 	schema    string
@@ -64,6 +65,7 @@ func main() {
 	genDataCmd.Flags().StringVar(&config, "config", "", "absolute or relative path to the config file")
 	genDataCmd.Flags().IntVar(&batch, "batch", 1000, "query and insert batch size")
 	genDataCmd.Flags().IntVar(&workers, "workers", 4, "number of workers to run concurrently")
+	genDataCmd.Flags().StringVar(&insertMode, "insert-mode", "upsert", "type of insert to run [insert | upsert]")
 	genDataCmd.MarkFlagRequired("config")
 
 	genConfigCmd := &cobra.Command{
@@ -120,7 +122,12 @@ func genData(cmd *cobra.Command, args []string) {
 	db := mustConnect(url)
 	defer db.Close()
 
-	g := commands.NewDataGenerator(db, logger, c, workers, batch)
+	parsedInsertMode := model.ParseInsertMode(insertMode)
+	if parsedInsertMode == model.InsertModeInvalid {
+		logger.Fatal().Msgf("%s is not a valid insert-mode", insertMode)
+	}
+
+	g := commands.NewDataGenerator(db, logger, c, workers, batch, parsedInsertMode)
 
 	logger.Debug().Msg("generating data")
 	if err = g.Generate(); err != nil {

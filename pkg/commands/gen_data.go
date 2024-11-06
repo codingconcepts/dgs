@@ -20,25 +20,27 @@ import (
 
 // DataGenerator holds the runtime dependencies of gen data.
 type DataGenerator struct {
-	db      *pgxpool.Pool
-	logger  zerolog.Logger
-	config  model.Config
-	workers int
-	batch   int
+	db         *pgxpool.Pool
+	logger     zerolog.Logger
+	config     model.Config
+	workers    int
+	batch      int
+	insertMode model.InsertMode
 
 	generatedMu sync.RWMutex
 	generated   map[string]int
 }
 
 // NewDataGenerator returns a pointer to a new instance of DataGenerator.
-func NewDataGenerator(db *pgxpool.Pool, logger zerolog.Logger, config model.Config, workers, batch int) *DataGenerator {
+func NewDataGenerator(db *pgxpool.Pool, logger zerolog.Logger, config model.Config, workers, batch int, insertMode model.InsertMode) *DataGenerator {
 	return &DataGenerator{
-		db:        db,
-		logger:    logger,
-		config:    config,
-		workers:   workers,
-		batch:     batch,
-		generated: map[string]int{},
+		db:         db,
+		logger:     logger,
+		config:     config,
+		workers:    workers,
+		batch:      batch,
+		insertMode: insertMode,
+		generated:  map[string]int{},
 	}
 }
 
@@ -331,7 +333,7 @@ func generateValue(c model.Column) (any, error) {
 }
 
 func (g *DataGenerator) writeRows(db *pgxpool.Conn, table model.Table, data *model.IterationData, rows [][]any) error {
-	stmt, err := query.BuildInsert(table, rows)
+	stmt, err := query.BuildInsert(table, rows, g.insertMode)
 	if err != nil {
 		return fmt.Errorf("building insert: %w", err)
 	}
