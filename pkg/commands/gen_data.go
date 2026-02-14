@@ -222,7 +222,11 @@ func (g *DataGenerator) generateRow(columns []model.Column, data *model.Iteratio
 			row = append(row, val)
 
 		case model.ColumnTypeSet:
-			row = append(row, lo.Sample(c.Set))
+			val, err := generateSet(c)
+			if err != nil {
+				return nil, fmt.Errorf("generating set: %w", err)
+			}
+			row = append(row, val)
 
 		case model.ColumnTypeRef:
 			row = append(row, data.GetValue(c.Ref))
@@ -314,6 +318,19 @@ func generateRange(c model.Column) (any, error) {
 	}
 }
 
+func generateSet(c model.Column) (any, error) {
+	if len(c.Weights) == 0 {
+		return lo.Sample(c.Set), nil
+	}
+
+	weightedItems, err := random.BuildWeightedItems(c.Set, c.Weights)
+	if err != nil {
+		return nil, fmt.Errorf("building weighted items: %w", err)
+	}
+
+	return weightedItems.Choose(), nil
+}
+
 func generateValue(c model.Column) (any, error) {
 	value := c.Value
 
@@ -341,6 +358,8 @@ func (g *DataGenerator) writeRows(db *pgxpool.Conn, table model.Table, data *mod
 
 	timeout, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
+
+	// TODO: Test CopyFrom instead!
 
 	if _, err := db.Exec(timeout, stmt, lo.Flatten(rows)...); err != nil {
 		return fmt.Errorf("executing query: %w", err)

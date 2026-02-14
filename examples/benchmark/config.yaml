@@ -1,0 +1,14 @@
+tables:
+    - name: member
+      rows: 1000000
+      columns:
+        - name: id
+          value: ${uuid}
+        - name: email
+          value: ${email}
+        - name: registered
+          range: timestamp
+          props:
+            min: 2014-07-27T01:00:00+01:00
+            max: 2024-07-24T01:00:00+01:00
+            format: "2006-01-02T15:04:05Z"

@@ -33,15 +33,16 @@ type Table struct {
 }
 
 type Column struct {
-	Name  string      `yaml:"name"`
-	Mode  ColumnType  `yaml:"-"`
-	Value string      `yaml:"value,omitempty"`
-	Array string      `yaml:"array,omitempty"`
-	Range string      `yaml:"range,omitempty"`
-	Props *RawMessage `yaml:"props,omitempty"`
-	Ref   string      `yaml:"ref,omitempty"`
-	Set   []string    `yaml:"set,omitempty"`
-	Inc   int64       `yaml:"inc,omitempty"`
+	Name    string      `yaml:"name"`
+	Mode    ColumnType  `yaml:"-"`
+	Value   string      `yaml:"value,omitempty"`
+	Array   string      `yaml:"array,omitempty"`
+	Range   string      `yaml:"range,omitempty"`
+	Props   *RawMessage `yaml:"props,omitempty"`
+	Ref     string      `yaml:"ref,omitempty"`
+	Set     []string    `yaml:"set,omitempty"`
+	Weights []int64     `yaml:"weights,omitempty"`
+	Inc     int64       `yaml:"inc,omitempty"`
 
 	NextID Sequence `yaml:"-"`
 }

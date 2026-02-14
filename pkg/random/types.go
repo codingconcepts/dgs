@@ -24,7 +24,7 @@ func BitString(min, max int64) []byte {
 	size := int(Int(min, max))
 	result := make([]byte, size)
 
-	for i := 0; i < size; i++ {
+	for i := range size {
 		n := Int(0, 10)
 		if n%2 == 0 {
 			result[i] = 1
